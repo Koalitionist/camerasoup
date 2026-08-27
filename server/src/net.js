@@ -22,3 +22,11 @@ export function lanIp() {
   }
   return '127.0.0.1';
 }
+
+// Plex-style wildcard-DNS hostname: 192-168-1-48.cam.example.com carries the
+// LAN IP in its label, so the public wildcard DNS for *.cam.example.com can
+// answer with that IP while a bundled *.cam.example.com cert makes the origin
+// a valid secure context — no per-device certificate install.
+export function dashedIpHost(domain, ip = lanIp()) {
+  return `${ip.replaceAll('.', '-')}.${domain}`;
+}

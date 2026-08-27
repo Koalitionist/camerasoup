@@ -76,7 +76,11 @@ npm start
 ```
 
 - The terminal prints the producer URL and a QR code for the camera URL.
+- With a domain + wildcard cert configured, phones need no certificate install at
+  all — see [docs/wildcard-https.md](docs/wildcard-https.md).
 - Open the producer on the Mac; add **Mac screen** / **Mac webcam** sources there.
+- **+ iPhone/iPad** in the producer shows the camera QR (and the first-time certificate
+  QR) right on the page — no terminal needed.
 - Scan the QR with iPhone/iPad, name the angle once (`topdown`, `face`), hit **Start camera**.
 - **REC** records every connected source; **Stop** finalizes everything into
   `sessions/<timestamp>/`.

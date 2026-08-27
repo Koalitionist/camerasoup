@@ -723,3 +723,84 @@ select {
   border-radius: 0;
   padding: 0.7em 1.1em;
 }
+
+/* ---- join overlay (camera QR) ---- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.join-panel {
+  position: relative;
+  display: flex;
+  gap: 2em;
+  max-width: min(52em, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1.6em 2em;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.join-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8em;
+  text-align: center;
+  max-width: 20em;
+}
+
+.join-col h2 {
+  margin: 0;
+  font-size: 1em;
+}
+
+.join-col.setup {
+  border-left: 1px solid var(--border);
+  padding-left: 2em;
+  justify-content: center;
+}
+
+.join-qr {
+  width: 240px;
+  height: 240px;
+  background: #fff;
+}
+
+.join-qr.small {
+  width: 150px;
+  height: 150px;
+}
+
+.join-url {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+  user-select: all;
+  word-break: break-all;
+}
+
+.join-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 0.15em 0.55em;
+}
+
+@media (max-width: 700px) {
+  .join-panel {
+    flex-direction: column;
+  }
+  .join-col.setup {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 1.4em;
+  }
+}

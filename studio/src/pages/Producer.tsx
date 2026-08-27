@@ -38,6 +38,12 @@ interface LocalSource {
   source: CaptureSource;
 }
 
+interface JoinUrls {
+  camera: string;
+  fallback: string | null;
+  setup: string | null;
+}
+
 const CELL_COLORS = ['#5b9dff', '#3dd68c', '#f5a623', '#e5484d', '#b98aff', '#4dd0e1'];
 
 function textOn(hex: string): string {
@@ -60,6 +66,7 @@ export default function Producer() {
   const [liveActive, setLiveActive] = useState<string | null>(null);
   const [camState, setCamState] = useState<Record<string, { zoom?: number; torch?: boolean }>>({});
   const [programSel, setProgramSel] = useState<string | null>(null);
+  const [join, setJoin] = useState<JoinUrls | null>(null);
   const previewUrls = useRef<Record<string, string>>({});
 
   // Screen/webcam shares can't survive a page reload (the browser requires a
@@ -355,9 +362,20 @@ export default function Producer() {
           ) : (
             <button onClick={() => void listWebcams()}>+ Mac webcam</button>
           )}
-          <span className="kind">iPhone/iPad: scan the QR in the terminal</span>
+          <button
+            onClick={() =>
+              void fetch('/api/join')
+                .then((r) => r.json())
+                .then(setJoin)
+                .catch(() => setToast('Could not load the join QR'))
+            }
+          >
+            + iPhone/iPad
+          </button>
         </div>
       </main>
+
+      {join && <JoinOverlay urls={join} onClose={() => setJoin(null)} />}
 
       <section className="sessions">
         <h2>Sessions</h2>
@@ -406,6 +424,53 @@ function RecTimer({ startedAt }: { startedAt: number }) {
     <span className="rec-timer">
       {m}:{String(Math.floor(s % 60)).padStart(2, '0')}
     </span>
+  );
+}
+
+// The camera-join QR, so a phone can be added without looking at the terminal.
+function JoinOverlay({ urls, onClose }: { urls: JoinUrls; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="join-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="join-col">
+          <h2>Add an iPhone or iPad</h2>
+          <img className="join-qr" src="/api/join/qr/camera" alt="QR code for the camera page" />
+          <span className="join-url">{urls.camera}</span>
+          <span className="kind">
+            Scan with the Camera app, open in Safari.
+            {urls.fallback && (
+              <>
+                <br />
+                If that URL won&rsquo;t open: <span className="join-url">{urls.fallback}</span>
+              </>
+            )}
+          </span>
+        </div>
+        {urls.setup && (
+          <div className="join-col setup">
+            <h2>First time on this device?</h2>
+            <img
+              className="join-qr small"
+              src="/api/join/qr/setup"
+              alt="QR code for certificate setup"
+            />
+            <span className="join-url">{urls.setup}</span>
+            <span className="kind">Install the certificate once, then scan the camera QR.</span>
+          </div>
+        )}
+        <button className="join-x" onClick={onClose}>
+          ✕
+        </button>
+      </div>
+    </div>
   );
 }
 
