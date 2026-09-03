@@ -1,4 +1,4 @@
-# filmstudie
+# camerasoup
 
 A little mobile film studio: multicam recording and hotkey editing for 4:5 and 9:16 social
 video — one Mac plus the iPhone and iPad you already own. No capture cards, no companion

@@ -55,7 +55,7 @@ function connect(role, name) {
 
 async function main() {
   // 1. Generate a fragmented MP4 the way MediaRecorder produces one.
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'filmstudie-test-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'camerasoup-test-'));
   const fmp4 = path.join(tmp, 'test.mp4');
   await execFileP('ffmpeg', [
     '-y', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=30',
@@ -68,7 +68,7 @@ async function main() {
   // 2. Start the server in HTTP test mode.
   const server = spawn('node', ['server/src/index.js'], {
     cwd: ROOT,
-    env: { ...process.env, FILMSTUDIE_HTTP: '1', FILMSTUDIE_PORT: String(PORT) },
+    env: { ...process.env, CAMERASOUP_HTTP: '1', CAMERASOUP_PORT: String(PORT) },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   server.stdout.on('data', (d) => process.stdout.write(`[server] ${d}`));

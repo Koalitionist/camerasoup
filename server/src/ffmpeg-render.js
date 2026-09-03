@@ -191,7 +191,7 @@ export async function renderSessionFfmpeg(sessionId, { hub, formats, log = conso
       let done = false;
       for (const encoder of ENCODERS) {
         const { args, totalSec } = buildArgs(manifest, format, encoder, displayRotations);
-        if (process.env.FILMSTUDIE_DEBUG) log(`ffmpeg ${args.join(' ')}`);
+        if (process.env.CAMERASOUP_DEBUG) log(`ffmpeg ${args.join(' ')}`);
         try {
           await runFfmpeg(args, totalSec, emit);
           done = true;

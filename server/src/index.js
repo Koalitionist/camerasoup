@@ -19,9 +19,9 @@ import {
   writeManifest,
 } from './sessions.js';
 
-const PORT = Number(process.env.FILMSTUDIE_PORT ?? 4433);
-const CA_PORT = Number(process.env.FILMSTUDIE_CA_PORT ?? 4434);
-const HTTP_MODE = process.env.FILMSTUDIE_HTTP === '1'; // tests / trusted-LAN debugging only
+const PORT = Number(process.env.CAMERASOUP_PORT ?? 4433);
+const CA_PORT = Number(process.env.CAMERASOUP_CA_PORT ?? 4434);
+const HTTP_MODE = process.env.CAMERASOUP_HTTP === '1'; // tests / trusted-LAN debugging only
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const CERTS = path.join(ROOT, 'server/certs');
@@ -31,7 +31,7 @@ const STUDIO_DIST = path.join(ROOT, 'studio/dist');
 // wildcard DNS resolves dashed-IP labels (192-168-1-48.<domain> → 192.168.1.48)
 // and a matching wildcard cert in server/certs/, phones get a valid HTTPS
 // origin with zero per-device setup. See docs/wildcard-https.md.
-const DOMAIN = process.env.FILMSTUDIE_DOMAIN ?? null;
+const DOMAIN = process.env.CAMERASOUP_DOMAIN ?? null;
 const WILDCARD_CERT = path.join(CERTS, 'wildcard.pem');
 const WILDCARD_KEY = path.join(CERTS, 'wildcard-key.pem');
 const domainMode =
@@ -163,7 +163,7 @@ function startMain() {
       hub.attach(server);
       server.on('error', reject);
       server.listen(PORT, () => {
-        console.log(`[filmstudie] HTTP mode on http://localhost:${PORT}`);
+        console.log(`[camerasoup] HTTP mode on http://localhost:${PORT}`);
         resolve(server);
       });
       return;
@@ -217,13 +217,13 @@ function startCaServer() {
   caApp.use('/sessions', express.static(SESSIONS_DIR));
   caApp.get('/rootCA.pem', (req, res) => {
     res.set('Content-Type', 'application/x-x509-ca-cert');
-    res.set('Content-Disposition', 'attachment; filename="filmstudie-rootCA.pem"');
+    res.set('Content-Disposition', 'attachment; filename="camerasoup-rootCA.pem"');
     res.send(fs.readFileSync(caFile));
   });
   caApp.get('/', (req, res) => {
     res.send(`<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1">
 <body style="font-family:-apple-system,sans-serif;max-width:34em;margin:2em auto;padding:0 1em;line-height:1.5">
-<h2>filmstudie — one-time device setup</h2>
+<h2>camerasoup — one-time device setup</h2>
 <ol>
 <li><a href="/rootCA.pem">Download the root certificate</a> (choose "Allow")</li>
 <li>Settings &rarr; <b>Profile Downloaded</b> &rarr; Install</li>
@@ -236,7 +236,7 @@ function startCaServer() {
 
 function banner() {
   const { camera, fallback, setup } = joinUrls();
-  console.log('\n  filmstudie studio is up\n');
+  console.log('\n  camerasoup studio is up\n');
   console.log(`  Producer (this Mac):  ${producerUrl()}`);
   console.log(`  Cameras (iPhone/iPad Safari): ${camera}`);
   if (fallback) console.log(`  If that URL won't open on a device: ${fallback}`);

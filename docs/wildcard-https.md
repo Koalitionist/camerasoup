@@ -13,7 +13,7 @@ The WebSocket signalling already uses the page's own origin
 
 ## What the app does (already implemented)
 
-With `FILMSTUDIE_DOMAIN=cam.example.com` set and a wildcard cert at
+With `CAMERASOUP_DOMAIN=cam.example.com` set and a wildcard cert at
 `server/certs/wildcard.pem` + `server/certs/wildcard-key.pem`, the server:
 
 - detects its LAN IP, builds `192-168-1-48.cam.example.com`, and uses that
@@ -87,8 +87,8 @@ changing the QR flow. Not built yet.
 ## Simulating locally (no domain needed)
 
 ```sh
-cd server/certs && mkcert -cert-file wildcard.pem -key-file wildcard-key.pem '*.cam.filmstudie.test'
-FILMSTUDIE_DOMAIN=cam.filmstudie.test npm start
-# curl: add  --resolve 192-168-1-48.cam.filmstudie.test:4433:<lan-ip>
-# a browser: launch Chrome with  --host-resolver-rules='MAP *.cam.filmstudie.test <lan-ip>'
+cd server/certs && mkcert -cert-file wildcard.pem -key-file wildcard-key.pem '*.cam.camerasoup.test'
+CAMERASOUP_DOMAIN=cam.camerasoup.test npm start
+# curl: add  --resolve 192-168-1-48.cam.camerasoup.test:4433:<lan-ip>
+# a browser: launch Chrome with  --host-resolver-rules='MAP *.cam.camerasoup.test <lan-ip>'
 ```

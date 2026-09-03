@@ -75,8 +75,8 @@ export default function Producer() {
     screen: boolean;
     webcam: { deviceId?: string; label?: string } | null;
   }>(() => ({
-    screen: localStorage.getItem('filmstudie.lastScreen') === '1',
-    webcam: JSON.parse(localStorage.getItem('filmstudie.lastWebcam') ?? 'null'),
+    screen: localStorage.getItem('camerasoup.lastScreen') === '1',
+    webcam: JSON.parse(localStorage.getItem('camerasoup.lastWebcam') ?? 'null'),
   }));
 
   const loadSessions = useCallback(async () => {
@@ -151,7 +151,7 @@ export default function Producer() {
       const stream = await openScreen();
       const source = new CaptureSource({ name: 'screen', kind: 'local-screen', stream });
       setLocals((l) => [...l, { key: `screen-${Date.now()}`, source }]);
-      localStorage.setItem('filmstudie.lastScreen', '1');
+      localStorage.setItem('camerasoup.lastScreen', '1');
       setGhosts((g) => ({ ...g, screen: true }));
     } catch (err) {
       setToast(`Could not add screen: ${(err as Error).message}`);
@@ -185,7 +185,7 @@ export default function Producer() {
         { key: `webcam-${device?.deviceId ?? 'default'}-${Date.now()}`, source },
       ]);
       localStorage.setItem(
-        'filmstudie.lastWebcam',
+        'camerasoup.lastWebcam',
         JSON.stringify({ deviceId: device?.deviceId, label: name })
       );
       setGhosts((g) => ({ ...g, webcam: { deviceId: device?.deviceId, label: name } }));
@@ -200,10 +200,10 @@ export default function Producer() {
       entry?.source.dispose();
       // An intentional remove also forgets the source for future sessions.
       if (entry?.source.kind === 'local-screen') {
-        localStorage.removeItem('filmstudie.lastScreen');
+        localStorage.removeItem('camerasoup.lastScreen');
         setGhosts((g) => ({ ...g, screen: false }));
       } else if (entry?.source.kind === 'local-webcam') {
-        localStorage.removeItem('filmstudie.lastWebcam');
+        localStorage.removeItem('camerasoup.lastWebcam');
         setGhosts((g) => ({ ...g, webcam: null }));
       }
       return l.filter((e) => e.key !== key);
@@ -299,7 +299,7 @@ export default function Producer() {
     <div className="producer-page">
       <header className="producer-header">
         <span className={`dot ${connected ? 'on' : ''}`} />
-        <h1>filmstudie</h1>
+        <h1>camerasoup</h1>
         <span className="kind">
           {onlineCount} source{onlineCount === 1 ? '' : 's'}
         </span>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { CameraCaps, CaptureSource, CaptureState, openCamera } from '../lib/capture';
 
-const NAME_KEY = 'filmstudie.cameraName';
-const FACING_KEY = 'filmstudie.cameraFacing';
-const ROTATION_KEY = 'filmstudie.cameraRotation';
-const QUALITY_KEY = 'filmstudie.cameraQuality';
+const NAME_KEY = 'camerasoup.cameraName';
+const FACING_KEY = 'camerasoup.cameraFacing';
+const ROTATION_KEY = 'camerasoup.cameraRotation';
+const QUALITY_KEY = 'camerasoup.cameraQuality';
 const SUGGESTIONS = ['topdown', 'face', 'action', 'side'];
 
 // Lower bitrates suit older phones and roaming cameras on weak WiFi.
@@ -46,7 +46,7 @@ function NameGate({ name, onStart }: { name: string; onStart: (name: string) => 
   return (
     <div className="camera-page">
       <div className="center-card">
-        <h1>filmstudie camera</h1>
+        <h1>camerasoup camera</h1>
         <p className="hint">Name this angle. The name sticks to this device.</p>
         <div className="chip-row">
           {SUGGESTIONS.map((s) => (
