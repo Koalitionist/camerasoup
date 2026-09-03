@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { X509Certificate } from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
@@ -7,6 +8,7 @@ import tls from 'node:tls';
 import express from 'express';
 import QRCode from 'qrcode';
 import qrcode from 'qrcode-terminal';
+import { readCloudflareToken, upsertARecord } from './cloudflare-dns.js';
 import { Hub } from './hub.js';
 import { bonjourHost, dashedIpHost, lanIp } from './net.js';
 import { isFfmpegRendering, renderSessionFfmpeg } from './ffmpeg-render.js';
@@ -200,11 +202,44 @@ function startMain() {
     );
     hub.attach(server);
     server.on('error', reject);
-    server.listen(PORT, () => {
+    server.listen(PORT, async () => {
+      await registerDns();
+      warnIfCertExpiring();
       banner();
       resolve(server);
     });
   });
+}
+
+// Wildcard-domain mode on a Cloudflare-managed domain: point the dashed-IP
+// hostname at this Mac's current LAN IP so the QR URL resolves. Without a
+// token the domain's DNS has to resolve dashed-IP labels by itself.
+async function registerDns() {
+  if (!domainMode) return;
+  const token = readCloudflareToken(CERTS);
+  if (!token) {
+    console.log(`\n  No server/certs/cloudflare-token — expecting ${DOMAIN} DNS to resolve dashed-IP labels itself.`);
+    return;
+  }
+  try {
+    await upsertARecord(token, dashedIpHost(DOMAIN), lanIp(), (m) => console.log(`\n  ${m}`));
+  } catch (err) {
+    console.error(`\n  Cloudflare DNS update failed: ${err.message}`);
+  }
+}
+
+// Let's Encrypt certs last 90 days; `npm run cert` renews from 30 days out.
+function warnIfCertExpiring() {
+  if (!domainMode) return;
+  try {
+    const cert = new X509Certificate(fs.readFileSync(WILDCARD_CERT));
+    const days = Math.floor((new Date(cert.validTo) - Date.now()) / 86_400_000);
+    if (days < 21) {
+      console.warn(`\n  Wildcard certificate expires in ${days} days — run:  npm run cert ${DOMAIN}`);
+    }
+  } catch {
+    // unreadable cert: https.createServer already failed loudly
+  }
 }
 
 // Plain-HTTP helper server: lets iPhone/iPad download the mkcert root CA

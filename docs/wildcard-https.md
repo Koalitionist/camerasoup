@@ -84,6 +84,37 @@ Out of scope for the LAN scheme by definition. The fallback is a tunnel
 separates `camera` from `fallback`, so a tunnel URL can slot in later without
 changing the QR flow. Not built yet.
 
+## Single studio on a Cloudflare domain (what runs on camerasoup.com)
+
+For one studio on a domain whose DNS is on Cloudflare, the pattern-parsing
+DNS server above is unnecessary: the server registers its own dashed-IP
+`A` record at startup (`server/src/cloudflare-dns.js`), and the wildcard
+cert comes from Let's Encrypt via a DNS-01 challenge against the same zone.
+The hostname scheme and the cert are identical to the product path — only
+who answers the DNS query differs. (Plex works this way too: `plex.direct`
+names are registered by the server, not pattern-resolved.)
+
+Once:
+
+1. Cloudflare dashboard → My Profile → API Tokens → Create Token → template
+   **Edit zone DNS**; add a second permission **Zone → Zone → Read**; Zone
+   Resources → Specific zone → `camerasoup.com`. Save the token to
+   `server/certs/cloudflare-token` (gitignored; or export
+   `CAMERASOUP_CF_TOKEN`).
+2. `npm run cert cam.camerasoup.com` — lego issues `*.cam.camerasoup.com`
+   and installs `wildcard.pem` + `wildcard-key.pem`. Re-run any time: it
+   renews only when fewer than 30 days remain, and the server warns at
+   startup once fewer than 21 remain.
+
+Then `CAMERASOUP_DOMAIN=cam.camerasoup.com npm start`: on start the server
+upserts `192-168-1-48.cam.camerasoup.com → 192.168.1.48` (TTL 60, DNS-only,
+never proxied) and prints the QR. If the Mac's LAN IP changes, the next start
+registers the new name; stale names from old IPs are harmless.
+
+For a multi-user product this becomes a small registration API in front of
+the zone instead of a DNS-edit token on every install. The DNS-rebind caveat
+above applies unchanged.
+
 ## Simulating locally (no domain needed)
 
 ```sh

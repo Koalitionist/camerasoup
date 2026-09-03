@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "setup": "bash scripts/setup.sh",
+    "cert": "bash scripts/cert.sh",
     "start": "npm run build -w studio && node server/src/index.js",
     "server": "node server/src/index.js",
     "build": "npm run build -w studio",
