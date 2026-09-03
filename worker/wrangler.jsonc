@@ -1,0 +1,27 @@
+{
+  // The hosted product: static studio pages plus WebRTC signaling rooms.
+  // Deploy: npm run deploy (builds studio/dist first).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "camerasoup",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true, // camerasoup.andreas-35a.workers.dev stays up for testing
+  "routes": [
+    { "pattern": "camerasoup.com", "custom_domain": true },
+    { "pattern": "www.camerasoup.com", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "../studio/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/ws/*", "/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" },
+      { "name": "STATS", "class_name": "Stats" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room", "Stats"] }],
+  "observability": { "enabled": true }
+}

@@ -804,3 +804,212 @@ select {
     padding-top: 1.4em;
   }
 }
+
+/* ---- connection check (/check on the Mac, /j/<code> on the phone) ---- */
+
+.check-page {
+  min-height: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.4em 1.6em 3em;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+}
+
+.check-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+}
+
+.check-header h1 {
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.check-header span {
+  color: var(--dim);
+}
+
+.check-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.2em;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .check-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 0.95em 1em;
+  border-bottom: 1px solid var(--border);
+}
+
+.step:last-child {
+  border-bottom: 0;
+}
+
+.step .label {
+  font-weight: 600;
+  min-width: 8em;
+}
+
+.step .detail {
+  color: var(--dim);
+  flex: 1;
+  min-width: 0;
+}
+
+.dot.active {
+  background: var(--accent);
+  animation: pulse 1.2s infinite;
+}
+
+.dot.warn {
+  background: #f5a524;
+}
+
+.dot.fail {
+  background: var(--rec);
+}
+
+.dot.pending {
+  background: var(--border);
+}
+
+.check-join {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 1.2em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7em;
+  text-align: center;
+}
+
+.check-join img {
+  width: 240px;
+  height: 240px;
+  background: #fff;
+  image-rendering: pixelated;
+}
+
+.check-code {
+  font-size: 1.7em;
+  letter-spacing: 0.25em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-code-inline {
+  letter-spacing: 0.15em;
+}
+
+.check-url {
+  color: var(--dim);
+  font-size: 0.9em;
+  word-break: break-all;
+}
+
+.verdict {
+  border: 1px solid var(--border);
+  border-left-width: 6px;
+  background: var(--panel);
+  padding: 1.3em 1.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+}
+
+.verdict.green {
+  border-left-color: var(--ok);
+}
+
+.verdict.yellow {
+  border-left-color: #f5a524;
+}
+
+.verdict.red {
+  border-left-color: var(--rec);
+}
+
+.verdict h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+.verdict ul {
+  padding-left: 1.2em;
+  line-height: 1.5;
+}
+
+.verdict .numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6em 2.4em;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.verdict .numbers b {
+  display: block;
+  color: var(--text);
+  font-size: 1.4em;
+}
+
+.verdict .actions {
+  display: flex;
+  gap: 0.6em;
+  flex-wrap: wrap;
+}
+
+.join-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+.join-page video {
+  width: 100%;
+  max-height: 38vh;
+  object-fit: cover;
+  background: #000;
+}
+
+.join-body {
+  padding: max(1.2em, env(safe-area-inset-top)) 1.2em max(1.2em, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  line-height: 1.45;
+}
+
+.join-body h1 {
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.join-status {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  font-weight: 600;
+  padding: 1em 0;
+}

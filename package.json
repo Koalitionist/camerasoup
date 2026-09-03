@@ -6,7 +6,8 @@
   "workspaces": [
     "server",
     "studio",
-    "video"
+    "video",
+    "worker"
   ],
   "scripts": {
     "setup": "bash scripts/setup.sh",
@@ -14,6 +15,7 @@
     "start": "npm run build -w studio && node server/src/index.js",
     "server": "node server/src/index.js",
     "build": "npm run build -w studio",
+    "deploy": "npm run build -w studio && npm run deploy -w worker",
     "test": "node scripts/integration-test.mjs"
   },
   "engines": {

@@ -93,6 +93,15 @@ While recording, keep Safari in the foreground and the screen on — iOS stops t
 otherwise. The camera page holds a wake lock and shows a loud warning if a feed is
 interrupted.
 
+## Hosted version (camerasoup.com)
+
+The product path is a website, not an install: the studio pages are served by a
+Cloudflare Worker that also relays WebRTC signaling, and phones connect to the Mac's
+browser directly over the LAN. The first piece is live — the connection check at
+[camerasoup.com/check](https://camerasoup.com/check) answers "will it work on my
+network?" in ten seconds, with a verdict in cameras rather than megabits. See
+[docs/hosted.md](docs/hosted.md) for the architecture and `npm run deploy` to ship.
+
 ## Development
 
 ```sh
