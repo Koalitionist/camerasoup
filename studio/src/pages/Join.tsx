@@ -174,8 +174,9 @@ export default function Join() {
           <>
             <h1>camerasoup</h1>
             <p>
-              Connection check for room <b className="check-code-inline">{code}</b>. Your phone will
-              open its camera and send test data to the Mac for about ten seconds.
+              Connection check for room <b className="check-code-inline">{code}</b>. This device is
+              a camera: it will open its camera and send test data to the Mac for about ten
+              seconds. The Mac does the recording.
             </p>
             <button className="big" onClick={() => void start()}>
               Start check

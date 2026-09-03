@@ -233,8 +233,8 @@ export default function Check() {
         <span>Will it work here?</span>
       </header>
       <p className="hint">
-        A ten-second check: your phone sends test footage to this Mac the way it will during a
-        recording. Nothing leaves your network.
+        Run this on the Mac that will record. One phone sends test footage to it for a few
+        seconds, the way it will during a recording. Nothing leaves your network.
       </p>
       <div className="check-grid">
         <section className="steps">

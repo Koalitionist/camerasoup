@@ -1013,3 +1013,101 @@ select {
   font-weight: 600;
   padding: 1em 0;
 }
+
+/* ---- front door (camerasoup.com) ---- */
+
+.home-page {
+  min-height: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: max(1.4em, env(safe-area-inset-top)) 1.6em 3em;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4em;
+  line-height: 1.45;
+}
+
+.home-page .lede {
+  font-size: 1.25em;
+  max-width: 34em;
+}
+
+.notice {
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--accent);
+  background: var(--panel);
+  padding: 0.9em 1.2em;
+}
+
+.roles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 700px) {
+  .roles {
+    grid-template-columns: 1fr;
+  }
+}
+
+.role {
+  background: var(--panel);
+  padding: 1em 1.1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.role span {
+  color: var(--dim);
+}
+
+.home-action {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 1.3em 1.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  align-items: flex-start;
+}
+
+.home-action h2 {
+  font-size: 1.4em;
+  font-weight: 700;
+}
+
+.home-action .big {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.8em 1.6em;
+}
+
+.home-join {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.home-join label {
+  color: var(--dim);
+}
+
+.code-row {
+  display: flex;
+  gap: 0.6em;
+  flex-wrap: wrap;
+}
+
+.code-row input {
+  font-size: 1.3em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  width: 9em;
+  max-width: 100%;
+}
