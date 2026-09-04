@@ -1,7 +1,13 @@
 import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ControlView, { ControlActions } from '../components/ControlView';
-import { fakeRequested, fakeStream, openScreen, openWebcam } from '../lib/capture';
+import {
+  fakeRequested,
+  fakeStream,
+  normalizeForRecording,
+  openScreen,
+  openWebcam,
+} from '../lib/capture';
 import {
   folderPermission,
   hasFolderAccess,
@@ -120,8 +126,10 @@ export default function Studio() {
 
   const addScreen = async () => {
     try {
-      const stream = fakeRequested() ? fakeStream('screen') : await openScreen();
-      hubRef.current?.addLocal('local-screen', stream, 'screen');
+      const raw = fakeRequested() ? fakeStream('screen', 1277, 713) : await openScreen();
+      // Never record a raw screen capture: see normalizeForRecording.
+      const normalized = normalizeForRecording(raw);
+      hubRef.current?.addLocal('local-screen', normalized.stream, 'screen', normalized.stop);
     } catch {
       // the user cancelled the picker
     }

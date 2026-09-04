@@ -55,7 +55,7 @@ interface Source {
   control: RTCDataChannel | null;
   media: RTCDataChannel | null;
   // local source
-  local: { stream: MediaStream; recorder: MediaRecorder | null } | null;
+  local: { stream: MediaStream; recorder: MediaRecorder | null; cleanup?: () => void } | null;
   // Serializes a local recorder's chunks: reading a Blob is async, so the
   // writes must be enqueued in order and drained before the source reports
   // end of file, or the last chunks race the writer's close.
@@ -70,6 +70,8 @@ interface Source {
   clockOffset: number | null;
   durationMs: number | null;
   localStartedAt: number;
+  recorderError: string | null;
+  dataWatchdog: number | undefined;
 }
 
 interface ControlView {
@@ -331,16 +333,23 @@ export class Hub {
       clockOffset: null,
       durationMs: null,
       localStartedAt: 0,
+      recorderError: null,
+      dataWatchdog: undefined,
     };
   }
 
   // --- local sources (the Mac's screen and webcam) -----------------------------
 
-  addLocal(kind: 'local-webcam' | 'local-screen', stream: MediaStream, name: string): string {
+  addLocal(
+    kind: 'local-webcam' | 'local-screen',
+    stream: MediaStream,
+    name: string,
+    cleanup?: () => void
+  ): string {
     let id = slugify(name);
     while (this.sources.has(id)) id = `${id}-2`;
     const src = this.blankSource(id, name, kind);
-    src.local = { stream, recorder: null };
+    src.local = { stream, recorder: null, cleanup };
     src.stream = stream;
     src.track = stream.getVideoTracks()[0] ?? null;
     src.forward = src.track ? new MediaStream([src.track]) : null;
@@ -405,13 +414,25 @@ export class Hub {
         this.onSourceEof(src, ms);
       });
     };
-    recorder.onerror = () => {
+    recorder.onerror = (ev) => {
+      const message = (ev as ErrorEvent).error?.message ?? 'recorder error';
+      src.recorderError = message;
       src.state = 'interrupted';
-      this.showToast(`${src.name}: recorder error`);
+      this.showToast(`${src.name}: ${message}`);
       this.emit();
     };
     recorder.start(1000);
-    void sessionId;
+    // A source that writes nothing in the first seconds never will: the
+    // encoder rejected the stream, or the screen produces no frames. Say so
+    // while the take can still be restarted, not after it.
+    src.dataWatchdog = window.setTimeout(() => {
+      if (src.bytes === 0 && this.recording?.sessionId === sessionId) {
+        src.recorderError = 'no video came out of this source';
+        src.state = 'interrupted';
+        this.showToast(`${src.name} is recording nothing — remove it and add it again`);
+        this.emit();
+      }
+    }, 5000);
   }
 
   // --- recording ---------------------------------------------------------------
@@ -450,6 +471,7 @@ export class Hub {
       src.lastAck = 0;
       src.recordStart = null;
       src.durationMs = null;
+      src.recorderError = null;
       manifest.sources.push({
         id: src.id,
         name: src.name,
@@ -570,8 +592,12 @@ export class Hub {
         if (warning) entry.error = `saved with a gap: ${warning}`;
       } catch (err) {
         entry.status = 'failed';
-        entry.error = (err as Error).message;
+        // The recorder's own complaint is the useful one; the writer only
+        // reports the symptom (nothing arrived to write).
+        entry.error = src.recorderError ?? (err as Error).message;
       }
+      window.clearTimeout(src.dataWatchdog);
+      src.recorderError = null;
       src.writer = null;
       src.state = src.online ? 'live' : src.state;
       if (src.local?.recorder) src.local.recorder = null;
@@ -622,7 +648,8 @@ export class Hub {
       this.cameraPeers.delete(src.peerId);
       this.peerToSource.delete(src.peerId);
     }
-    src.local?.stream.getTracks().forEach((t) => t.stop());
+    if (src.local?.cleanup) src.local.cleanup();
+    else src.local?.stream.getTracks().forEach((t) => t.stop());
     this.sources.delete(src.id);
     if (this.program === src.id) this.program = this.sources.keys().next().value ?? null;
   }

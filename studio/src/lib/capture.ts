@@ -374,10 +374,10 @@ export function fakeRequested(): boolean {
   return new URLSearchParams(location.search).get('fake') === '1';
 }
 
-export function fakeStream(label = 'test'): MediaStream {
+export function fakeStream(label = 'test', width = 1280, height = 720): MediaStream {
   const canvas = document.createElement('canvas');
-  canvas.width = 1280;
-  canvas.height = 720;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext('2d')!;
   let i = 0;
   // setInterval, not requestAnimationFrame: a background tab stops painting
@@ -425,4 +425,60 @@ export async function openScreen(): Promise<MediaStream> {
     video: { frameRate: { ideal: 30 } },
     audio: false,
   });
+}
+
+// Longest side of a normalized screen capture. The finished video is
+// 1080×1350 or 1080×1920, so a 4K desktop buys nothing and costs a lot.
+const SCREEN_MAX_DIM = 1920;
+
+export interface NormalizedStream {
+  stream: MediaStream;
+  stop(): void;
+}
+
+// Screen capture is not safe to hand straight to MediaRecorder:
+//
+//  - a shared window or tab has whatever pixel size the window happens to
+//    be, and H.264 requires even width and height — an odd one makes the
+//    encoder emit nothing at all;
+//  - the capture is change-driven, so a still page produces almost no
+//    frames and the recording comes out empty.
+//
+// Drawing it into a canvas on a steady timer fixes both: even dimensions by
+// construction, and a real frame every tick no matter how still the screen
+// is. setInterval rather than requestAnimationFrame, because a background
+// tab stops painting with rAF.
+export function normalizeForRecording(source: MediaStream, fps = 30): NormalizedStream {
+  const track = source.getVideoTracks()[0];
+  const settings = track?.getSettings() ?? {};
+  const srcW = settings.width ?? 1280;
+  const srcH = settings.height ?? 720;
+  const scale = Math.min(1, SCREEN_MAX_DIM / Math.max(srcW, srcH));
+  const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2);
+  const canvas = document.createElement('canvas');
+  canvas.width = even(srcW * scale);
+  canvas.height = even(srcH * scale);
+  const ctx = canvas.getContext('2d', { alpha: false })!;
+
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.srcObject = source;
+  void video.play().catch(() => {});
+
+  const timer = window.setInterval(() => {
+    if (video.videoWidth) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  }, Math.round(1000 / fps));
+
+  const out = canvas.captureStream(fps);
+  for (const audio of source.getAudioTracks()) out.addTrack(audio);
+  return {
+    stream: out,
+    stop() {
+      window.clearInterval(timer);
+      video.srcObject = null;
+      for (const t of source.getTracks()) t.stop();
+      for (const t of out.getTracks()) t.stop();
+    },
+  };
 }
