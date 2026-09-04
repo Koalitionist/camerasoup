@@ -1177,3 +1177,11 @@ select {
 .session-row .meta.problem {
   color: var(--rec);
 }
+
+/* Screens are letterboxed, not cropped: the edges of a shared window carry
+   content, unlike the edges of a face. */
+.cell.contain video,
+.cell.contain img {
+  object-fit: contain;
+  background: #000;
+}

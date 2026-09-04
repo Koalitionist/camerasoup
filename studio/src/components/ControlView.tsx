@@ -172,7 +172,17 @@ function Cell({
   const buffering = cam.pendingBytes > 4 * 1024 * 1024;
   return (
     <div
-      className={`cell${big ? ' big' : ''}${live ? ' live' : ''}${onAir ? ' onair' : ''}`}
+      className={[
+        'cell',
+        big && 'big',
+        live && 'live',
+        onAir && 'onair',
+        // A camera fills its cell and is cropped a little; a screen is shown
+        // whole, because its edges carry content a crop would eat.
+        cam.kind === 'local-screen' && 'contain',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={big ? { gridColumn: '1 / 3', gridRow: '1 / 3' } : undefined}
       onClick={onClick}
     >
