@@ -454,11 +454,36 @@ export interface NormalizedStream {
 // construction, and a real frame every tick no matter how still the screen
 // is. setInterval rather than requestAnimationFrame, because a background
 // tab stops painting with rAF.
-export function normalizeForRecording(source: MediaStream, fps = 30): NormalizedStream {
-  const track = source.getVideoTracks()[0];
-  const settings = track?.getSettings() ?? {};
-  const srcW = settings.width ?? 1280;
-  const srcH = settings.height ?? 720;
+export async function normalizeForRecording(
+  source: MediaStream,
+  fps = 30
+): Promise<NormalizedStream> {
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.srcObject = source;
+  void video.play().catch(() => {});
+
+  // The frame size has to come from the video itself. A display track's
+  // getSettings() can describe the whole screen while the frames carry only
+  // the shared window, and sizing the canvas from that squeezes the picture.
+  await new Promise<void>((resolve) => {
+    if (video.videoWidth) return resolve();
+    const done = () => resolve();
+    video.addEventListener('loadedmetadata', done, { once: true });
+    video.addEventListener('resize', done, { once: true });
+    setTimeout(done, 3000);
+  });
+
+  const srcW = video.videoWidth || 1280;
+  const srcH = video.videoHeight || 720;
+  // The two numbers that must agree in shape. If a capture ever looks
+  // squeezed again, this line says whether the frames or the fit are wrong.
+  const reported = source.getVideoTracks()[0]?.getSettings() ?? {};
+  console.info(
+    `[camerasoup] screen frames ${srcW}x${srcH} (aspect ${(srcW / srcH).toFixed(3)}), ` +
+      `track reports ${reported.width}x${reported.height}`
+  );
   const scale = Math.min(1, SCREEN_MAX_DIM / Math.max(srcW, srcH));
   const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2);
   const canvas = document.createElement('canvas');
@@ -466,14 +491,20 @@ export function normalizeForRecording(source: MediaStream, fps = 30): Normalized
   canvas.height = even(srcH * scale);
   const ctx = canvas.getContext('2d', { alpha: false })!;
 
-  const video = document.createElement('video');
-  video.muted = true;
-  video.playsInline = true;
-  video.srcObject = source;
-  void video.play().catch(() => {});
-
+  // Letterboxed, never stretched: the shared window can be resized mid-take,
+  // and the canvas size is fixed once the recording starts.
   const timer = window.setInterval(() => {
-    if (video.videoWidth) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) return;
+    const fit = Math.min(canvas.width / w, canvas.height / h);
+    const dw = w * fit;
+    const dh = h * fit;
+    if (dw < canvas.width || dh < canvas.height) {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.drawImage(video, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
   }, Math.round(1000 / fps));
 
   const out = canvas.captureStream(fps);

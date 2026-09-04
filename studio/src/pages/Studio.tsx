@@ -128,7 +128,7 @@ export default function Studio() {
     try {
       const raw = fakeRequested() ? fakeStream('screen', 1277, 713) : await openScreen();
       // Never record a raw screen capture: see normalizeForRecording.
-      const normalized = normalizeForRecording(raw);
+      const normalized = await normalizeForRecording(raw);
       hubRef.current?.addLocal('local-screen', normalized.stream, 'screen', normalized.stop);
     } catch {
       // the user cancelled the picker
