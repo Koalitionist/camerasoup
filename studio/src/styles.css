@@ -202,6 +202,7 @@ button.big:hover:not(:disabled) {
   width: 200px;
   flex-shrink: 0;
   position: relative;
+  overflow: hidden;
   border-right: 1px solid var(--light-ink);
 }
 
@@ -221,31 +222,10 @@ button.big:hover:not(:disabled) {
 .spine-body {
   flex: 1;
   min-width: 0;
-  padding: 36px 48px 40px 48px;
+  padding: 36px 48px max(40px, env(safe-area-inset-bottom)) 48px;
   display: flex;
   flex-direction: column;
   gap: 22px;
-}
-
-@media (max-width: 900px) {
-  .spine-page {
-    flex-direction: column;
-  }
-  .spine {
-    width: auto;
-    height: 64px;
-    border-right: 0;
-    border-bottom: 1px solid var(--light-ink);
-  }
-  .spine .wordmark {
-    position: static;
-    transform: none;
-    font-size: 40px;
-    padding: 12px 0 0 16px;
-  }
-  .spine-body {
-    padding: 24px 20px 32px;
-  }
 }
 
 /* ---- home --------------------------------------------------------------- */
@@ -1591,4 +1571,98 @@ button.big {
 
 .camera-bar .spacer {
   flex: 1;
+}
+
+
+/* ---- narrow screens -----------------------------------------------------
+   The spine stays vertical everywhere; it just narrows to the phone metrics
+   from the handoff. These rules are last on purpose: they must win over the
+   .phone-spine sizes above, which have identical specificity. */
+
+@media (max-width: 760px) {
+  .spine,
+  .spine.phone-spine {
+    width: 104px;
+  }
+
+  .spine .wordmark,
+  .spine.phone-spine .wordmark {
+    font-size: 92px;
+    left: 6px;
+    bottom: 20px;
+  }
+
+  .spine-body {
+    padding: 28px 20px max(28px, env(safe-area-inset-bottom)) 20px;
+    gap: 18px;
+  }
+
+  .home-col h1,
+  .spine-body h1 {
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  .lede {
+    font-size: 17px;
+  }
+
+  .role-pills {
+    margin-left: -20px;
+  }
+
+  .stripes {
+    margin-right: -20px;
+  }
+
+  .check-join img,
+  .join-qr {
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .verdict .numbers {
+    gap: 12px 24px;
+  }
+
+  .step {
+    grid-template-columns: 16px 1fr;
+    row-gap: 2px;
+  }
+
+  .step .detail {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 420px) {
+  .spine,
+  .spine.phone-spine {
+    width: 84px;
+  }
+
+  .spine .wordmark,
+  .spine.phone-spine .wordmark {
+    font-size: 74px;
+  }
+
+  .spine-body {
+    padding: 24px 16px max(24px, env(safe-area-inset-bottom)) 16px;
+  }
+
+  /* the hang must match the body padding exactly, or the page scrolls */
+  .stripes {
+    margin-right: -16px;
+  }
+
+  .role-pills {
+    margin-left: -16px;
+  }
+
+  .home-col h1,
+  .spine-body h1 {
+    font-size: 28px;
+  }
 }

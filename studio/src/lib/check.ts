@@ -72,7 +72,13 @@ export function waitControl<T extends Control['type']>(
   return new Promise((resolve, reject) => {
     const timer = window.setTimeout(() => {
       off();
-      reject(new Error(`no "${type}" message from the other side`));
+      reject(
+        new Error(
+          type === 'caps'
+            ? 'the phone connected but did not start the check — scan the code again and choose “Test connection”'
+            : `the phone stopped responding (waiting for "${type}")`
+        )
+      );
     }, timeoutMs);
     const off = onControl(dc, (msg) => {
       if (msg.type === type) {

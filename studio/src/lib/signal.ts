@@ -35,8 +35,11 @@ export function signalOrigin(): string {
   return (override || location.origin).replace(/\/$/, '');
 }
 
-export function joinUrl(code: string): string {
-  return `${signalOrigin()}/j/${code}`;
+// The bare URL lands on the role picker, which is what a studio wants. The
+// check needs the phone in one specific role, so its QR names the mode; the
+// short URL still works, the person just taps "Test connection".
+export function joinUrl(code: string, mode?: 'camera' | 'control' | 'check'): string {
+  return `${signalOrigin()}/j/${code}${mode ? `?mode=${mode}` : ''}`;
 }
 
 const KEEPALIVE = '{"type":"ping"}'; // answered by the Room without waking it

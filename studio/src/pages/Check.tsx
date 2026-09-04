@@ -55,7 +55,7 @@ export default function Check() {
 
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(joinUrl(code), { margin: 1, width: 480 })
+    QRCode.toDataURL(joinUrl(code, 'check'), { margin: 1, width: 480 })
       .then(setQr)
       .catch(() => {});
     (async () => {
@@ -244,7 +244,7 @@ export default function Check() {
         </section>
         <aside className="check-join">
           {qr ? (
-            <img src={qr} alt={`QR code for ${joinUrl(code)}`} />
+            <img src={qr} alt={`QR code for ${joinUrl(code, 'check')}`} />
           ) : (
             <div style={{ width: 260, height: 260 }} />
           )}
