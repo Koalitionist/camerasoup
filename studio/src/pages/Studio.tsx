@@ -259,9 +259,16 @@ export default function Studio() {
             <strong>{s.id}</strong>
             <span className="meta">
               {s.sources
-                .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)}s` : ''}${x.status === 'failed' ? ' (failed)' : ''}`)
+                .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)}s` : ''}`)
                 .join(' · ')}
             </span>
+            {s.sources
+              .filter((x) => x.error)
+              .map((x) => (
+                <span key={x.id} className="meta problem">
+                  {x.id}: {x.error}
+                </span>
+              ))}
           </div>
         ))}
         <p className="hint">

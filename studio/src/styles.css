@@ -1173,3 +1173,7 @@ select {
   font-size: 1.3em;
   font-weight: 700;
 }
+
+.session-row .meta.problem {
+  color: var(--rec);
+}

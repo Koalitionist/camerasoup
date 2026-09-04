@@ -56,6 +56,10 @@ interface Source {
   media: RTCDataChannel | null;
   // local source
   local: { stream: MediaStream; recorder: MediaRecorder | null } | null;
+  // Serializes a local recorder's chunks: reading a Blob is async, so the
+  // writes must be enqueued in order and drained before the source reports
+  // end of file, or the last chunks race the writer's close.
+  chunkChain: Promise<void>;
   // recording
   writer: SegmentWriter | null;
   eof: boolean;
@@ -317,6 +321,7 @@ export class Hub {
       control: null,
       media: null,
       local: null,
+      chunkChain: Promise.resolve(),
       writer: null,
       eof: false,
       bytes: 0,
@@ -382,17 +387,23 @@ export class Hub {
       this.emit();
     };
     recorder.ondataavailable = (ev) => {
-      if (!ev.data.size || !src.writer) return;
+      if (!ev.data.size) return;
       const blob = ev.data;
-      void blob.arrayBuffer().then((buf) => {
-        void src.writer?.write(new Uint8Array(buf));
+      src.chunkChain = src.chunkChain.then(async () => {
+        const buf = await blob.arrayBuffer();
+        if (!src.writer) return;
+        await src.writer.write(new Uint8Array(buf));
         src.bytes += buf.byteLength;
       });
     };
     recorder.onstop = () => {
-      // ondataavailable for the last chunk fires before onstop; the writer
-      // chain keeps order.
-      this.onSourceEof(src, Math.round(performance.now() - src.localStartedAt));
+      // The final chunk's ondataavailable fires before onstop, but reading it
+      // is async — wait for the chain before reporting end of file so every
+      // byte is on disk before the writer is finalized.
+      const ms = Math.round(performance.now() - src.localStartedAt);
+      src.chunkChain = src.chunkChain.then(() => {
+        this.onSourceEof(src, ms);
+      });
     };
     recorder.onerror = () => {
       src.state = 'interrupted';
@@ -435,6 +446,7 @@ export class Hub {
       src.writer = new SegmentWriter(dir, src.id);
       src.eof = false;
       src.bytes = 0;
+      src.chunkChain = Promise.resolve();
       src.lastAck = 0;
       src.recordStart = null;
       src.durationMs = null;
@@ -548,14 +560,14 @@ export class Hub {
         continue;
       }
       try {
-        const { file, bytes } = await src.writer.finalize(extensionFor(src.mimeType));
+        const { file, bytes, warning } = await src.writer.finalize(extensionFor(src.mimeType));
         entry.file = file;
         entry.bytes = bytes;
         entry.duration = (src.durationMs ?? 0) / 1000;
         entry.recordStart = src.recordStart;
         entry.mimeType = src.mimeType;
-        entry.status = bytes > 0 ? 'finalized' : 'failed';
-        if (!bytes) entry.error = 'no media data received';
+        entry.status = 'finalized';
+        if (warning) entry.error = `saved with a gap: ${warning}`;
       } catch (err) {
         entry.status = 'failed';
         entry.error = (err as Error).message;
@@ -718,7 +730,13 @@ export class Hub {
       program: this.program,
       sessions: this.sessions.slice(0, 30).map((m) => ({
         id: m.id,
-        sources: m.sources.map((s) => ({ id: s.id, file: s.file, duration: s.duration, status: s.status })),
+        sources: m.sources.map((s) => ({
+          id: s.id,
+          file: s.file,
+          duration: s.duration,
+          status: s.status,
+          error: s.error,
+        })),
       })),
       toast: this.toast,
     };

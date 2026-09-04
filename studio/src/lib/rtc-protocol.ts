@@ -66,7 +66,7 @@ export interface SnapshotCamera {
 
 export interface SessionSummary {
   id: string;
-  sources: { id: string; file: string | null; duration?: number; status: string }[];
+  sources: { id: string; file: string | null; duration?: number; status: string; error?: string }[];
 }
 
 export interface HubSnapshot {

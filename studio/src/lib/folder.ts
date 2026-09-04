@@ -170,6 +170,7 @@ export class SegmentWriter {
   private current: { name: string; stream: FileSystemWritableFileStream; bytes: number } | null = null;
   private chain: Promise<void> = Promise.resolve();
   private failed: Error | null = null;
+  private closing = false;
 
   constructor(
     private readonly dir: FileSystemDirectoryHandle,
@@ -183,6 +184,10 @@ export class SegmentWriter {
   // BufferSource, not Uint8Array: a Uint8Array may be backed by a
   // SharedArrayBuffer, which the file-system write API doesn't accept.
   write(chunk: BufferSource): Promise<void> {
+    // A chunk that arrives after finalize() started is dropped rather than
+    // thrown: the stream is already closing, and losing a trailing chunk
+    // must never cost the whole take.
+    if (this.closing) return this.chain;
     this.chain = this.chain.then(() => this.append(chunk)).catch((err) => {
       this.failed = err as Error;
     });
@@ -206,25 +211,41 @@ export class SegmentWriter {
     }
   }
 
-  async finalize(ext: string): Promise<{ file: string; bytes: number }> {
+  // Stitches the segments into one file. A write that failed earlier is
+  // reported as a warning, not an exception: whatever reached disk is still
+  // worth keeping, so a hiccup costs the tail of a take rather than all of it.
+  async finalize(ext: string): Promise<{ file: string; bytes: number; warning: string | null }> {
+    this.closing = true;
     await this.chain;
     if (this.current) {
-      await this.current.stream.close();
+      await this.current.stream.close().catch((err) => {
+        this.failed = err as Error;
+      });
       this.current = null;
     }
-    if (this.failed) throw this.failed;
     const file = `${this.baseName}.${ext}`;
     const out = await this.dir.getFileHandle(file, { create: true });
     const w = await out.createWritable();
+    let bytes = 0;
     for (const name of this.parts) {
-      const part = await this.dir.getFileHandle(name);
-      await w.write(await part.getFile());
+      try {
+        const part = await this.dir.getFileHandle(name);
+        const f = await part.getFile();
+        await w.write(f);
+        bytes += f.size;
+      } catch (err) {
+        this.failed = (err as Error) ?? this.failed;
+      }
     }
     await w.close();
     for (const name of this.parts) {
       await this.dir.removeEntry(name).catch(() => {});
     }
     this.parts = [];
-    return { file, bytes: this.bytes };
+    if (bytes === 0) {
+      await this.dir.removeEntry(file).catch(() => {});
+      throw this.failed ?? new Error('the recorder produced no data');
+    }
+    return { file, bytes, warning: this.failed?.message ?? null };
   }
 }
