@@ -40,7 +40,10 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Adobe Fonts first, then the local cut, then Arial on Windows. The kit
+     ships Roman (400) and Bold (700) only: the design's 500 resolves to
+     Roman and its 300 to Roman, which is the intended substitute. */
+  font-family: 'helvetica-neue-lt-pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
