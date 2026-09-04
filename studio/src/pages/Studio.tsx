@@ -265,6 +265,9 @@ export default function Studio() {
         {state.sessions.map((s) => (
           <div className="session-row" key={s.id}>
             <strong>{s.id}</strong>
+            <a href={`/edit?session=${s.id}`}>
+              <button>Edit</button>
+            </a>
             <span className="meta">
               {s.sources
                 .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)}s` : ''}`)
@@ -280,7 +283,7 @@ export default function Studio() {
           </div>
         ))}
         <p className="hint">
-          Editing and rendering still run in the local app for now. The files are in your folder.
+          Edit cuts the show and renders 4:5 and 9:16 straight into the session folder.
         </p>
       </section>
 

@@ -12,18 +12,18 @@ export default function App() {
   // Everything a phone or tablet does in a session: camera, remote control,
   // or the connection check.
   if (path.startsWith('/j/')) return <Join />;
-  if (path.startsWith('/studio') || path.startsWith('/check')) {
-    // Recording and the check both belong on the machine that will record.
+  if (path.startsWith('/studio') || path.startsWith('/check') || path.startsWith('/edit')) {
+    // Recording, editing and the check all belong on the computer that holds
+    // the footage.
     if (!platformInfo().desktop) {
       return (
         <Home notice="The studio runs on the computer that records. On this device, scan the computer’s code or type it below." />
       );
     }
-    return path.startsWith('/studio') ? <Studio /> : <Check />;
+    if (path.startsWith('/studio')) return <Studio />;
+    return path.startsWith('/edit') ? <Edit /> : <Check />;
   }
   if (isHosted()) {
-    // The website has the front door, the studio and the check; the editor
-    // still lives in the local app until it is ported.
     return (
       <Home
         notice={
@@ -33,6 +33,5 @@ export default function App() {
     );
   }
   if (path.startsWith('/camera')) return <Camera />;
-  if (path.startsWith('/edit')) return <Edit />;
   return <Producer />;
 }

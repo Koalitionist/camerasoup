@@ -114,9 +114,30 @@ Two hooks, test-only, never shipped as features:
 `/studio?code=X&fs=opfs&fake=1` plus `/j/X?mode=camera&fake=1` drives a
 whole session in two tabs.
 
+## Editing and rendering
+
+`/edit` reads the same session folder. `session-store.ts` puts one interface
+over two backends — the folder (File System Access) on the website, the Node
+server in the local app — so the editor itself doesn't know which it is
+talking to. Video files become blob URLs; an edit is merged into the
+manifest on disk rather than overwriting it, so durations and file names
+survive.
+
+The render (`render-browser.ts`) is pure browser. Mediabunny demuxes each
+angle and decodes it with WebCodecs, every output frame is composited onto
+one canvas and encoded with the Mac's hardware h264 encoder, and the result
+is muxed to MP4 with AAC audio, written next to the footage as
+`out-4x5.mp4` and `out-9x16.mp4`. It renders segment by segment so each
+angle's packets are decoded once, and it reuses the same `buildTimeline()`
+the editor previews — what you see is what renders. The bundle is loaded on
+demand, so the camera page never downloads it.
+
+Measured: an 11.3 s two-angle session rendered to both formats in under
+10 seconds, verified as 1080×1350 and 1080×1920 playable MP4s.
+
 ## What comes next
 
-In order of risk: in-browser remux at stop (so the files are seekable
-without ffmpeg), then the WebCodecs render engine, then porting the editor.
-The Node server and ffmpeg path in `server/` stay as the local fallback
-until the browser render reaches parity.
+Audio through the render is written but untested — the automated tests use
+silent canvas sources. The Node server and ffmpeg path in `server/` stay as
+the local fallback, and `server/` remains the only way to render a session
+that lives outside the browser's folder.

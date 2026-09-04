@@ -1,6 +1,7 @@
 export interface EditSource {
   id: string;
   src: string; // URL of the finalized file (relative in the browser, absolute for renders)
+  fileName?: string; // name within the session folder, for the in-browser renderer
   recordStart: number; // server-clock ms when this source's recorder started
   duration: number; // seconds
   rotation?: number; // 0 | 90 | 180 | 270, clockwise

@@ -7,46 +7,67 @@ import {
   FilmProps,
   FORMATS,
 } from '../../../video/src/types';
+import { pickRootFolder } from '../lib/folder';
+import { isHosted } from '../lib/platform';
+import type { RenderProgress } from '../lib/render-browser';
+import { Manifest, SessionStore, getStore } from '../lib/session-store';
 import { Json, StudioSocket } from '../lib/ws';
-
-interface ManifestSource {
-  id: string;
-  name: string;
-  kind: string;
-  file: string | null;
-  status: string;
-  recordStart: number | null;
-  duration?: number;
-  rotation?: number;
-}
-
-interface Manifest {
-  id: string;
-  fps?: number;
-  sources: ManifestSource[];
-  cuts?: Cut[];
-  audioSource?: string | null;
-}
 
 const ANGLE_COLORS = ['#5b9dff', '#3dd68c', '#f5a623', '#e5484d', '#b98aff', '#4dd0e1'];
 
 export default function Edit() {
   const sessionId = new URLSearchParams(location.search).get('session');
+  const [store, setStore] = useState<SessionStore | null>(null);
+  const [needsFolder, setNeedsFolder] = useState(false);
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [sessions, setSessions] = useState<Manifest[] | null>(null);
 
   useEffect(() => {
-    if (sessionId) {
-      void fetch(`/api/sessions/${sessionId}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then(setManifest);
-    } else {
-      void fetch('/api/sessions')
-        .then((r) => r.json())
-        .then(setSessions);
-    }
-  }, [sessionId]);
+    void getStore().then((s) => {
+      if (s) setStore(s);
+      else setNeedsFolder(true); // hosted, but no folder remembered yet
+    });
+  }, []);
 
+  useEffect(() => {
+    if (!store) return;
+    if (sessionId) void store.load(sessionId).then(setManifest);
+    else void store.list().then(setSessions);
+  }, [store, sessionId]);
+
+  if (needsFolder) {
+    return (
+      <div className="home-page">
+        <header className="check-header">
+          <h1>camerasoup</h1>
+          <span>editor</span>
+        </header>
+        <section className="home-action">
+          <h2>Which folder holds the recordings?</h2>
+          <p className="hint">
+            The same folder the studio records into. The browser asks once per computer.
+          </p>
+          <button
+            className="big"
+            onClick={async () => {
+              try {
+                await pickRootFolder();
+                const s = await getStore();
+                if (s) {
+                  setStore(s);
+                  setNeedsFolder(false);
+                }
+              } catch {
+                // picker cancelled
+              }
+            }}
+          >
+            Choose folder
+          </button>
+        </section>
+      </div>
+    );
+  }
   if (!sessionId) return <SessionPicker sessions={sessions} />;
   if (!manifest) {
     return (
@@ -55,15 +76,16 @@ export default function Edit() {
       </div>
     );
   }
-  return <Editor manifest={manifest} />;
+  return <Editor manifest={manifest} store={store!} />;
 }
 
 function SessionPicker({ sessions }: { sessions: Manifest[] | null }) {
+  const home = isHosted() ? '/studio' : '/producer';
   return (
     <div className="center-card" style={{ margin: 'auto' }}>
       <h1>Edit a session</h1>
       {!sessions && <p className="hint">Loading…</p>}
-      {sessions?.length === 0 && <p className="hint">No sessions yet — record one in the producer.</p>}
+      {sessions?.length === 0 && <p className="hint">No sessions yet — record one first.</p>}
       {sessions?.map((m) => (
         <a key={m.id} href={`/edit?session=${m.id}`}>
           <button style={{ width: '100%' }}>
@@ -71,30 +93,53 @@ function SessionPicker({ sessions }: { sessions: Manifest[] | null }) {
           </button>
         </a>
       ))}
-      <a href="/producer">
-        <button style={{ width: '100%' }}>← Producer</button>
+      <a href={home}>
+        <button style={{ width: '100%' }}>← Studio</button>
       </a>
     </div>
   );
 }
 
-function Editor({ manifest }: { manifest: Manifest }) {
+function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }) {
   const fps = manifest.fps ?? 30;
   const [rotations, setRotations] = useState<Record<string, number>>(() =>
     Object.fromEntries(manifest.sources.map((s) => [s.id, s.rotation ?? 0]))
   );
+
+  // Playable files: a path on the local server, a blob URL from the folder.
+  const usable = useMemo(
+    () => manifest.sources.filter((s) => s.status === 'finalized' && s.file && s.recordStart && s.duration),
+    [manifest]
+  );
+  const [urls, setUrls] = useState<Record<string, string> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const map: Record<string, string> = {};
+      for (const s of usable) map[s.id] = await store.urlFor(manifest.id, s.file!);
+      if (!cancelled) setUrls(map);
+    })();
+    return () => {
+      cancelled = true;
+      store.releaseUrls();
+    };
+  }, [manifest.id, usable, store]);
+
   const sources: EditSource[] = useMemo(
     () =>
-      manifest.sources
-        .filter((s) => s.status === 'finalized' && s.file && s.recordStart && s.duration)
-        .map((s) => ({
-          id: s.id,
-          src: `/sessions/${manifest.id}/${s.file}`,
-          recordStart: s.recordStart!,
-          duration: s.duration!,
-          rotation: rotations[s.id] ?? 0,
-        })),
-    [manifest, rotations]
+      !urls
+        ? []
+        : usable
+            .filter((s) => urls[s.id])
+            .map((s) => ({
+              id: s.id,
+              src: urls[s.id],
+              fileName: s.file!,
+              recordStart: s.recordStart!,
+              duration: s.duration!,
+              rotation: rotations[s.id] ?? 0,
+            })),
+    [usable, urls, rotations]
   );
 
   const [cuts, setCuts] = useState<Cut[]>(manifest.cuts ?? []);
@@ -198,17 +243,15 @@ function Editor({ manifest }: { manifest: Manifest }) {
       return;
     }
     const t = window.setTimeout(() => {
-      void fetch(`/api/sessions/${manifest.id}/edit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cuts, audioSource: audioSourceId, rotations }),
-      });
+      void store.saveEdit(manifest.id, { cuts, audioSource: audioSourceId, rotations });
     }, 600);
     return () => window.clearTimeout(t);
-  }, [cuts, audioSourceId, rotations, manifest.id]);
+  }, [cuts, audioSourceId, rotations, manifest.id, store]);
 
-  // render progress over the hub socket
+  // render progress over the hub socket (local app only; the browser
+  // renderer reports its own progress directly)
   useEffect(() => {
+    if (store.kind !== 'server') return;
     const socket = new StudioSocket();
     socket.onOpen(() => socket.send({ type: 'hello', role: 'producer' } as Json));
     socket.on('render-progress', (msg) => {
@@ -229,7 +272,7 @@ function Editor({ manifest }: { manifest: Manifest }) {
     });
     socket.connect();
     return () => socket.close();
-  }, [manifest.id]);
+  }, [manifest.id, store.kind]);
 
   const activeSourceAt = useCallback(
     (f: number) => {
@@ -368,11 +411,31 @@ function Editor({ manifest }: { manifest: Manifest }) {
             className="rec-button"
             onClick={() => {
               setRender({ state: 'running', progress: 0 });
-              void fetch(`/api/sessions/${manifest.id}/render`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-              });
+              if (store.kind === 'server') {
+                void fetch(`/api/sessions/${manifest.id}/render`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({}),
+                });
+                return;
+              }
+              // The demuxer and muxer are a big download; fetch them only
+              // when someone actually renders, so the camera page stays light.
+              void import('../lib/render-browser')
+                .then(({ renderSession }) =>
+                  renderSession({
+                    props,
+                    store,
+                    sessionId: manifest.id,
+                    formats: ['4:5', '9:16'],
+                    onProgress: (p: RenderProgress) =>
+                      setRender({ state: 'running', progress: p.progress, format: p.format }),
+                  })
+                )
+                .then((files) => setRender({ state: 'done', progress: 1, files }))
+                .catch((err) =>
+                  setRender({ state: 'error', progress: 0, message: (err as Error).message })
+                );
             }}
           >
             Render 4:5 + 9:16
@@ -382,29 +445,10 @@ function Editor({ manifest }: { manifest: Manifest }) {
 
       {render.state === 'done' && (
         <div className="banner" style={{ background: 'var(--ok)', color: '#08110c' }}>
-          Rendered!{' '}
-          {(render.files ?? []).map((f) => (
-            <a
-              key={f}
-              href={`/sessions/${manifest.id}/${f}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{ marginRight: '0.8em' }}
-            >
-              {f}
-            </a>
-          ))}{' '}
-          <button
-            onClick={() =>
-              void fetch('/api/reveal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: manifest.id }),
-              })
-            }
-          >
-            Reveal
-          </button>
+          Rendered {(render.files ?? []).join(' and ')} into the session folder.{' '}
+          {store.kind === 'server' && (
+            <button onClick={() => void store.reveal(manifest.id)}>Reveal</button>
+          )}
         </div>
       )}
       {render.state === 'error' && <div className="banner">Render failed: {render.message}</div>}
