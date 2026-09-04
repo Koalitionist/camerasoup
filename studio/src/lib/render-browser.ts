@@ -70,8 +70,9 @@ export async function renderSession(opts: {
       const ctx = canvas.getContext('2d', { alpha: false });
       if (!ctx) throw new Error('could not open a 2D canvas');
 
-      // The sink does the rotate-and-cover for us, at output resolution:
-      // the file's own rotation plus whatever the editor set on top.
+      // The sink only rotates, at the angle's own resolution; the fit into
+      // the output frame is done here with the same centre-cover maths the
+      // editor's program monitor uses, so the preview and the file agree.
       const sinks = new Map<string, CanvasSink>();
       for (const source of props.sources) {
         const track = await inputs.get(source.id)!.getPrimaryVideoTrack();
@@ -79,15 +80,21 @@ export async function renderSession(opts: {
         sinks.set(
           source.id,
           new CanvasSink(track, {
-            width,
-            height,
-            fit: 'cover',
             rotation: quarterTurns(track.rotation + (source.rotation ?? 0)),
             poolSize: 2,
           })
         );
       }
       if (!sinks.size) throw new Error('none of the angles could be decoded');
+
+      const drawCover = (frame: { canvas: HTMLCanvasElement | OffscreenCanvas }) => {
+        const src = frame.canvas;
+        if (!src.width || !src.height) return;
+        const scale = Math.max(width / src.width, height / src.height);
+        const w = src.width * scale;
+        const h = src.height * scale;
+        ctx.drawImage(src, (width - w) / 2, (height - h) / 2, w, h);
+      };
 
       const target = new BufferTarget();
       const output = new Output({ format: new Mp4OutputFormat(), target });
@@ -140,7 +147,7 @@ export async function renderSession(opts: {
         for (let i = 0; i < segment.len; i++) timestamps.push((segment.start + i + trim) / fps);
         let i = 0;
         for await (const frame of sink.canvasesAtTimestamps(timestamps)) {
-          if (frame) ctx.drawImage(frame.canvas, 0, 0, width, height);
+          if (frame) drawCover(frame);
           // A null frame (past the end of that angle) holds the last picture.
           await videoSource.add((segment.start + i) / fps, 1 / fps);
           i++;

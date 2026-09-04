@@ -380,15 +380,21 @@ export function fakeStream(label = 'test', width = 1280, height = 720): MediaStr
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
   let i = 0;
+  // A centred square, the only pure-white thing in the frame, so a test can
+  // measure it in the rendered file: cover-fitting keeps it square, a
+  // stretch does not.
+  const side = Math.round(Math.min(canvas.width, canvas.height) * 0.5);
   // setInterval, not requestAnimationFrame: a background tab stops painting
   // frames entirely with rAF, which would make a test recording empty.
   const draw = () => {
     i += 1;
     ctx.fillStyle = `hsl(${(i * 2) % 360}, 60%, 40%)`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#000';
     ctx.font = 'bold 96px sans-serif';
-    ctx.fillText(`${label} ${i}`, 80, 360);
+    ctx.fillText(`${label} ${i}`, 40, 120);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect((canvas.width - side) / 2, (canvas.height - side) / 2, side, side);
   };
   draw();
   setInterval(draw, 33);
