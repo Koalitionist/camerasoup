@@ -66,12 +66,57 @@ Domains: `camerasoup.com` and `www.camerasoup.com` are Workers custom
 domains (Cloudflare manages DNS and the certificate);
 `camerasoup.andreas-35a.workers.dev` stays enabled for testing.
 
+## Roles: the computer records, anything controls
+
+Recording needs a folder on disk and a hardware encoder, so the hub runs in
+a desktop Chromium tab. Everything you *do* during a take is small, so the
+control surface is separate and can run anywhere:
+
+| Page | Who | Does |
+|---|---|---|
+| `/studio` | the recording computer | owns the room, receives footage, writes files, keeps the clock |
+| `/j/<code>` → camera | phone, tablet, spare laptop | sends a preview track and, while recording, full-quality chunks |
+| `/j/<code>` → remote control | an iPad, or the studio's own screen | sees every camera, presses REC, cuts the show |
+| `/j/<code>` → check | any device | the ten-second connection test |
+
+`ControlView` is one component rendered from either the hub's own state or a
+snapshot received over a data channel, so the iPad and the Mac cannot drift
+apart.
+
+Per camera the hub opens two data channels — `control` (JSON) and `media`
+(ordered raw bytes) — plus one receive-only video transceiver for the
+preview. A control view gets a `control` channel and a forwarded copy of
+every camera's track, matched to cameras by MediaStream id.
+
+## Recording to disk
+
+Chrome commits a `FileSystemWritableFileStream` only on `close()`, so a tab
+that dies mid-take would lose everything. Footage is written as closed
+segments of 16 MB (`SegmentWriter`) and stitched into one file at stop: a
+crash costs seconds, not the take. The session folder and `session.json`
+match the local server's format exactly, so the existing editor and ffmpeg
+render still work on browser-recorded sessions.
+
+Clock sync is unchanged in spirit: cameras ping the hub over the control
+channel, take the median offset, and report their recorder start on the hub
+clock. Live cuts are logged in hub-clock milliseconds and converted to
+timeline frames at finalize.
+
+## Testing without hardware
+
+Two hooks, test-only, never shipped as features:
+
+- `?fs=opfs` puts recordings in the origin-private file system, so no
+  native folder dialog is needed.
+- `?fake=1` substitutes a moving canvas for the camera or screen, so no
+  permission prompts are needed.
+
+`/studio?code=X&fs=opfs&fake=1` plus `/j/X?mode=camera&fake=1` drives a
+whole session in two tabs.
+
 ## What comes next
 
-In order of risk: port the producer and camera pages onto the same rooms
-(data channel carries the MediaRecorder chunks, a low-bitrate video track
-replaces JPEG previews), write chunks into a user-chosen folder in segments
-so a crashed tab loses seconds rather than a take, remux at stop with a JS
-muxer, then the WebCodecs render engine. The Node server and ffmpeg path in
-`server/` stay as the local fallback until the browser render reaches
-parity.
+In order of risk: in-browser remux at stop (so the files are seekable
+without ffmpeg), then the WebCodecs render engine, then porting the editor.
+The Node server and ffmpeg path in `server/` stay as the local fallback
+until the browser render reaches parity.

@@ -63,7 +63,7 @@ export default function Check() {
       hostRef.current = caps;
       setHost(caps);
       try {
-        const signal = await Signal.connect(code, 'host');
+        const signal = await Signal.connect(code, 'host', 'check');
         if (cancelled) {
           signal.close();
           return;

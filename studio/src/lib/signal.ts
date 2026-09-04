@@ -3,7 +3,7 @@
 // cameras; media never goes this way. Rejoins the same room after a drop
 // (deploys restart rooms, WiFi blips happen) so a page never has to reload
 // just to keep its code.
-export type Role = 'host' | 'camera';
+export type Role = 'host' | 'camera' | 'control';
 export interface Peer {
   id: string;
   role: Role;

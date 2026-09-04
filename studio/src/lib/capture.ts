@@ -368,7 +368,35 @@ export class CaptureSource {
   }
 }
 
+// Test hook (?fake=1): a moving canvas stands in for a camera, so an
+// automated browser can drive a whole session with no permission prompts.
+export function fakeRequested(): boolean {
+  return new URLSearchParams(location.search).get('fake') === '1';
+}
+
+export function fakeStream(label = 'test'): MediaStream {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1280;
+  canvas.height = 720;
+  const ctx = canvas.getContext('2d')!;
+  let i = 0;
+  // setInterval, not requestAnimationFrame: a background tab stops painting
+  // frames entirely with rAF, which would make a test recording empty.
+  const draw = () => {
+    i += 1;
+    ctx.fillStyle = `hsl(${(i * 2) % 360}, 60%, 40%)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 96px sans-serif';
+    ctx.fillText(`${label} ${i}`, 80, 360);
+  };
+  draw();
+  setInterval(draw, 33);
+  return canvas.captureStream(30);
+}
+
 export async function openCamera(facing: 'user' | 'environment'): Promise<MediaStream> {
+  if (fakeRequested()) return fakeStream('cam');
   return navigator.mediaDevices.getUserMedia({
     video: {
       facingMode: facing,

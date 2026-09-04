@@ -1111,3 +1111,65 @@ select {
   width: 9em;
   max-width: 100%;
 }
+
+/* ---- join role picker, studio extras ---- */
+
+.role-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.role-picker button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3em;
+  text-align: left;
+  padding: 1.1em 1.2em;
+  border: 0;
+  background: var(--panel);
+}
+
+.role-picker button b {
+  font-size: 1.15em;
+}
+
+.role-picker button span {
+  color: var(--dim);
+}
+
+.role-picker button.quiet b {
+  font-size: 1em;
+  font-weight: 500;
+}
+
+.linkish {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.2em 0;
+}
+
+.cell-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 0.15em 0.6em;
+  background: rgba(13, 15, 18, 0.85);
+  font-size: 0.85em;
+  color: var(--dim);
+}
+
+.cell-badge.warn {
+  background: var(--rec);
+  color: #fff;
+}
+
+.check-header h1 {
+  font-size: 1.3em;
+  font-weight: 700;
+}

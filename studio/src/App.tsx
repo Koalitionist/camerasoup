@@ -5,24 +5,31 @@ import Edit from './pages/Edit';
 import Home from './pages/Home';
 import Join from './pages/Join';
 import Producer from './pages/Producer';
+import Studio from './pages/Studio';
 
 export default function App() {
   const path = window.location.pathname;
+  // Everything a phone or tablet does in a session: camera, remote control,
+  // or the connection check.
   if (path.startsWith('/j/')) return <Join />;
-  if (path.startsWith('/check')) {
-    // The check runs where the recording will: on a desktop. A phone or
-    // iPad that lands here was meant to scan, not host.
-    return platformInfo().desktop ? (
-      <Check />
-    ) : (
-      <Home notice="The check runs on the Mac that will record. On this device, scan the Mac’s code or type it below." />
-    );
+  if (path.startsWith('/studio') || path.startsWith('/check')) {
+    // Recording and the check both belong on the machine that will record.
+    if (!platformInfo().desktop) {
+      return (
+        <Home notice="The studio runs on the computer that records. On this device, scan the computer’s code or type it below." />
+      );
+    }
+    return path.startsWith('/studio') ? <Studio /> : <Check />;
   }
   if (isHosted()) {
-    // The website has the front door and the check; the studio pages still
-    // live on the local server until they are ported.
+    // The website has the front door, the studio and the check; the editor
+    // still lives in the local app until it is ported.
     return (
-      <Home notice={path !== '/' ? 'That page isn’t on the website yet. Start with the check on your Mac.' : undefined} />
+      <Home
+        notice={
+          path !== '/' ? 'That page isn’t on the website yet. Start the studio on your computer.' : undefined
+        }
+      />
     );
   }
   if (path.startsWith('/camera')) return <Camera />;

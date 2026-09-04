@@ -30,15 +30,22 @@ export async function iceServers(): Promise<RTCIceServer[]> {
   return iceCache ?? FALLBACK_ICE;
 }
 
+// Only the host ever offers, so there is no glare to resolve; offers are
+// serialized so a renegotiation (a new track for a control view) waits for
+// the previous answer.
 export class SignalledPeer {
   readonly pc: RTCPeerConnection;
   private queued: RTCIceCandidateInit[] = [];
   private remoteSet = false;
+  private offers: Promise<void> = Promise.resolve();
 
   constructor(
     readonly signal: Signal,
     readonly peerId: string,
-    servers: RTCIceServer[]
+    servers: RTCIceServer[],
+    // Answerer hook: attach local tracks to the offer's transceivers before
+    // the answer is built.
+    private readonly beforeAnswer?: (pc: RTCPeerConnection) => Promise<void>
   ) {
     this.pc = new RTCPeerConnection({ iceServers: servers });
     this.pc.onicecandidate = (ev) => {
@@ -46,10 +53,35 @@ export class SignalledPeer {
     };
   }
 
-  async offer() {
+  offer(): Promise<void> {
+    this.offers = this.offers.then(() => this.offerNow()).catch(() => {});
+    return this.offers;
+  }
+
+  private async offerNow() {
+    if (this.pc.signalingState === 'closed') return;
     const offer = await this.pc.createOffer();
     await this.pc.setLocalDescription(offer);
     this.signal.send(this.peerId, { sdp: offer });
+    await this.untilStable(10_000);
+  }
+
+  private untilStable(timeoutMs: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.pc.signalingState === 'stable') {
+        resolve();
+        return;
+      }
+      const timer = window.setTimeout(done, timeoutMs);
+      const check = () => {
+        if (this.pc.signalingState === 'stable' || this.pc.signalingState === 'closed') done();
+      };
+      function done() {
+        window.clearTimeout(timer);
+        resolve();
+      }
+      this.pc.addEventListener('signalingstatechange', check);
+    });
   }
 
   async handle(data: SignalData) {
@@ -59,6 +91,7 @@ export class SignalledPeer {
       for (const c of this.queued) await this.pc.addIceCandidate(c).catch(() => {});
       this.queued = [];
       if (data.sdp.type === 'offer') {
+        await this.beforeAnswer?.(this.pc);
         const answer = await this.pc.createAnswer();
         await this.pc.setLocalDescription(answer);
         this.signal.send(this.peerId, { sdp: answer });

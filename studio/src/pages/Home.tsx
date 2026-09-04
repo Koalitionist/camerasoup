@@ -41,8 +41,8 @@ export default function Home({ notice }: { notice?: string }) {
         <div className="role">
           <b>iPad as remote control</b>
           <span>
-            Coming next: see every camera and press REC from anywhere in the room while the Mac
-            records.
+            Any spare device can be the control room: see every camera and press REC from across
+            the room while the Mac keeps recording.
           </span>
         </div>
       </section>
@@ -51,10 +51,13 @@ export default function Home({ notice }: { notice?: string }) {
         <section className="home-action">
           <h2>{cap(platform.label)} can record.</h2>
           <p className="hint">
-            Ten seconds to find out if your browser, your WiFi and one phone are ready.
+            Pick a folder for the footage, then add cameras by scanning the code that appears.
           </p>
-          <button className="big" onClick={() => (location.href = '/check')}>
-            Check {platform.label}
+          <button className="big" onClick={() => (location.href = '/studio')}>
+            Start the studio
+          </button>
+          <button onClick={() => (location.href = '/check')}>
+            First check my network (10 seconds)
           </button>
         </section>
       ) : platform.desktop ? (

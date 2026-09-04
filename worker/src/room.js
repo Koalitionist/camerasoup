@@ -17,7 +17,10 @@ export class Room extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
-    const role = url.searchParams.get('role') === 'host' ? 'host' : 'camera';
+    // host = the recording tab; control = a remote-control view (iPad);
+    // anything else is a camera.
+    const wanted = url.searchParams.get('role');
+    const role = wanted === 'host' || wanted === 'control' ? wanted : 'camera';
     const name = (url.searchParams.get('name') ?? '').slice(0, 40);
     const id = crypto.randomUUID().slice(0, 8);
 
