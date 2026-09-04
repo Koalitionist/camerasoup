@@ -237,7 +237,13 @@ export class Hub {
         this.pendingTracks.delete(peerId);
         this.attachTrack(src, track);
       }
-      sendJson(control, { type: 'hello-ack', sourceId: id, hubTime: Date.now() } satisfies HubToCamera);
+      const keyNumber = [...this.sources.keys()].indexOf(id) + 1;
+      sendJson(control, {
+        type: 'hello-ack',
+        sourceId: id,
+        hubTime: Date.now(),
+        keyNumber,
+      } satisfies HubToCamera);
       if (this.recording && this.recording.ids.includes(id) && !src.eof) {
         sendJson(control, {
           type: 'record-start',

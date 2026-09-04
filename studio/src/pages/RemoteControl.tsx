@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ControlView, { ControlActions } from '../components/ControlView';
+import SpinePage from '../components/Spine';
 import { SignalledPeer, iceServers } from '../lib/peer';
 import type { ControlToHub, HubSnapshot, HubToControl } from '../lib/rtc-protocol';
 import { onJson, sendJson } from '../lib/rtc-protocol';
@@ -29,13 +30,13 @@ export default function RemoteControl({ code, onLeave }: { code: string; onLeave
           return;
         }
         if (!signal.peers.some((p) => p.role === 'host')) {
-          setError('No studio is running with this code. Start it on the Mac, then reload.');
+          setError('No studio is running with this code. Start it on the computer, then reload.');
           return;
         }
         signal.on((msg) => {
           if (msg.type === 'closed') setError('Lost the connection to the studio.');
           if (msg.type === 'peer-left' && msg.role === 'host') {
-            setError('The studio tab on the Mac closed.');
+            setError('The studio tab on the computer closed.');
           }
           if (msg.type !== 'signal') return;
           if (!peer) {
@@ -56,8 +57,9 @@ export default function RemoteControl({ code, onLeave }: { code: string; onLeave
               setStreams({ ...byStreamId.current });
             };
             peer.pc.onconnectionstatechange = () => {
-              const s = peer!.pc.connectionState;
-              if (s === 'failed') setError('Lost the direct connection to the Mac.');
+              if (peer!.pc.connectionState === 'failed') {
+                setError('Lost the direct connection to the computer.');
+              }
             };
           }
           void peer.handle(msg.data);
@@ -85,37 +87,33 @@ export default function RemoteControl({ code, onLeave }: { code: string; onLeave
 
   if (error) {
     return (
-      <div className="home-page">
-        <header className="check-header">
-          <h1>camerasoup</h1>
-          <span>remote control</span>
-        </header>
-        <section className="verdict red">
+      <SpinePage phone>
+        <span className="meta">Remote control</span>
+        <div className="edged verdict red">
           <h2>Not connected.</h2>
-          <ul>
-            <li>{error}</li>
-          </ul>
+          <p className="hint">{error}</p>
           <div className="actions">
-            <button onClick={() => location.reload()}>Try again</button>
-            <button onClick={onLeave}>Back</button>
+            <button className="pill outline" onClick={() => location.reload()}>
+              Try again
+            </button>
+            <button className="pill outline" onClick={onLeave}>
+              Back
+            </button>
           </div>
-        </section>
-      </div>
+        </div>
+      </SpinePage>
     );
   }
 
   if (!state) {
     return (
-      <div className="home-page">
-        <header className="check-header">
-          <h1>camerasoup</h1>
-          <span>remote control</span>
-        </header>
+      <SpinePage phone>
+        <span className="meta">Remote control</span>
         <div className="join-status">
           <span className="dot active" />
           Connecting to the studio…
         </div>
-      </div>
+      </SpinePage>
     );
   }
 
@@ -126,20 +124,14 @@ export default function RemoteControl({ code, onLeave }: { code: string; onLeave
   }
 
   return (
-    <div className="producer-page">
+    <>
       <ControlView
         state={state}
         streams={mapped}
         actions={actions}
-        header={
-          <>
-            <span className="dot on" />
-            <h1>camerasoup</h1>
-            <span className="kind">remote · {state.code}</span>
-          </>
-        }
+        meta={<span className="meta">remote · {state.code}</span>}
       />
       {state.toast && <div className="toast">{state.toast}</div>}
-    </div>
+    </>
   );
 }

@@ -22,6 +22,7 @@ export interface CameraEvents {
   state: CameraState;
   connected: boolean;
   sourceId: string | null;
+  keyNumber: number;
   error: string | null;
   pendingBytes: number;
   recordingSince: number | null; // local ms
@@ -47,6 +48,7 @@ export class CameraClient {
   state: CameraState = 'connecting';
   connected = false;
   sourceId: string | null = null;
+  keyNumber = 1;
   error: string | null = null;
   pendingBytes = 0;
   rotation: number;
@@ -107,6 +109,7 @@ export class CameraClient {
       state: this.state,
       connected: this.connected,
       sourceId: this.sourceId,
+      keyNumber: this.keyNumber,
       error: this.error,
       pendingBytes: this.pendingBytes,
       recordingSince: this.recordingSince,
@@ -216,6 +219,7 @@ export class CameraClient {
     switch (m.type) {
       case 'hello-ack':
         this.sourceId = m.sourceId;
+        if (m.keyNumber) this.keyNumber = m.keyNumber;
         if (this.state === 'connecting') this.setState('live');
         void this.syncClock();
         if (this.recorder && this.sessionId) {

@@ -1,6 +1,7 @@
 import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ControlView, { ControlActions } from '../components/ControlView';
+import SpinePage from '../components/Spine';
 import {
   fakeRequested,
   fakeStream,
@@ -162,41 +163,34 @@ export default function Studio() {
 
   if (phase === 'error') {
     return (
-      <div className="home-page">
-        <header className="check-header">
-          <h1>camerasoup</h1>
-        </header>
-        <section className="verdict red">
+      <SpinePage>
+        <div className="edged verdict red">
           <h2>Can’t start the studio here.</h2>
-          <ul>
-            <li>{error}</li>
-          </ul>
+          <p className="hint">{error}</p>
           <div className="actions">
-            <button onClick={() => (location.href = '/')}>Back</button>
+            <button className="pill outline" onClick={() => (location.href = '/')}>
+              Back
+            </button>
           </div>
-        </section>
-      </div>
+        </div>
+      </SpinePage>
     );
   }
 
   if (phase === 'folder' || phase === 'starting') {
     return (
-      <div className="home-page">
-        <header className="check-header">
-          <h1>camerasoup</h1>
-          <span>studio</span>
-        </header>
-        <section className="home-action">
-          <h2>Where should recordings go?</h2>
-          <p className="hint">
-            Pick a folder on {platform.label}. Every session gets its own subfolder with the video
-            files, and the footage never leaves this machine. {platform.label === 'this Mac' ? 'The Mac' : 'This computer'} only
-            asks once.
-          </p>
+      <SpinePage>
+        <span className="meta">Studio</span>
+        <h1>Where should recordings go?</h1>
+        <p className="lede">
+          Pick a folder on {platform.label}. Every session gets its own subfolder, and the footage
+          never leaves this machine. You are asked once.
+        </p>
+        <div className="actions-row" style={{ marginTop: 8 }}>
           {needsPermission ? (
             <>
               <button
-                className="big"
+                className="pill solid"
                 onClick={async () => {
                   if (await requestFolderPermission(needsPermission)) {
                     setNeedsPermission(null);
@@ -206,89 +200,96 @@ export default function Studio() {
               >
                 Use “{needsPermission.name}” again
               </button>
-              <button onClick={() => void pickFolder()}>Choose a different folder</button>
+              <button className="pill outline" onClick={() => void pickFolder()}>
+                Choose a different folder
+              </button>
             </>
           ) : (
-            <button className="big" disabled={phase === 'starting'} onClick={() => void pickFolder()}>
+            <button
+              className="pill solid"
+              disabled={phase === 'starting'}
+              onClick={() => void pickFolder()}
+            >
               {phase === 'starting' ? 'Starting…' : 'Choose folder'}
             </button>
           )}
-          {error && <p className="hint">{error}</p>}
-        </section>
-      </div>
+        </div>
+        {error && <p className="hint">{error}</p>}
+      </SpinePage>
     );
   }
 
   if (!state) return null;
 
   return (
-    <div className="producer-page">
+    <>
       <ControlView
         state={state}
         streams={streams}
         actions={actions}
-        header={
-          <>
-            <span className="dot on" />
-            <h1>camerasoup</h1>
-            <button className="linkish" onClick={() => setShowJoin(true)}>
-              + camera
-            </button>
-          </>
-        }
+        onAdd={() => setShowJoin(true)}
+        meta={<span className="meta">{state.folder}</span>}
         extras={
           <div className="cell add">
-            <button onClick={() => setShowJoin(true)}>+ iPhone / iPad</button>
-            <button onClick={() => void addScreen()}>+ this screen</button>
+            <button className="pill ghost" onClick={() => setShowJoin(true)}>
+              + iPhone / iPad
+            </button>
             {webcamChoices ? (
               <>
-                <span className="kind">Pick a camera:</span>
                 {webcamChoices.map((d, i) => (
-                  <button key={d.deviceId || i} onClick={() => void addWebcam(d)}>
+                  <button key={d.deviceId || i} className="pill ghost" onClick={() => void addWebcam(d)}>
                     {d.label || `Camera ${i + 1}`}
                   </button>
                 ))}
-                <button onClick={() => setWebcamChoices(null)}>Cancel</button>
+                <button className="pill ghost" onClick={() => setWebcamChoices(null)}>
+                  Cancel
+                </button>
               </>
             ) : (
-              <button onClick={() => void listWebcams()}>+ this webcam</button>
+              <>
+                <button className="pill ghost" onClick={() => void addScreen()}>
+                  + this screen
+                </button>
+                <button className="pill ghost" onClick={() => void listWebcams()}>
+                  + this webcam
+                </button>
+              </>
             )}
           </div>
+        }
+        footer={
+          <section className="recordings">
+            <div className="recordings-title">Recordings</div>
+            {state.sessions.length === 0 && <span className="meta">none yet — hit REC</span>}
+            {state.sessions.map((s) => (
+              <div className="session-row" key={s.id}>
+                <strong>{s.id}</strong>
+                <span className="meta">
+                  {s.sources
+                    .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)} s` : ''}`)
+                    .join(' · ')}
+                </span>
+                {s.sources
+                  .filter((x) => x.error)
+                  .map((x) => (
+                    <span key={x.id} className="meta problem">
+                      {x.id}: {x.error}
+                    </span>
+                  ))}
+                <span className="spacer" />
+                <a href={`/edit?session=${s.id}`}>
+                  <button className="pill ghost small">Edit</button>
+                </a>
+              </div>
+            ))}
+          </section>
         }
       />
 
       {showJoin && <JoinOverlay state={state} onClose={() => setShowJoin(false)} />}
-
-      <section className="sessions">
-        <h2>Recordings in {state.folder}</h2>
-        {state.sessions.length === 0 && <span className="kind">none yet — hit REC</span>}
-        {state.sessions.map((s) => (
-          <div className="session-row" key={s.id}>
-            <strong>{s.id}</strong>
-            <a href={`/edit?session=${s.id}`}>
-              <button>Edit</button>
-            </a>
-            <span className="meta">
-              {s.sources
-                .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)}s` : ''}`)
-                .join(' · ')}
-            </span>
-            {s.sources
-              .filter((x) => x.error)
-              .map((x) => (
-                <span key={x.id} className="meta problem">
-                  {x.id}: {x.error}
-                </span>
-              ))}
-          </div>
-        ))}
-        <p className="hint">
-          Edit cuts the show and renders 4:5 and 9:16 straight into the session folder.
-        </p>
-      </section>
-
+      {error && <div className="toast">{error}</div>}
       {state.toast && <div className="toast">{state.toast}</div>}
-    </div>
+    </>
   );
 }
 
@@ -313,7 +314,7 @@ function JoinOverlay({ state, onClose }: { state: HubSnapshot; onClose: () => vo
           {qr && <img className="join-qr" src={qr} alt={`QR code for ${state.joinUrl}`} />}
           <span className="check-code">{state.code}</span>
           <span className="join-url">{state.joinUrl.replace(/^https?:\/\//, '')}</span>
-          <span className="kind">
+          <span className="hint">
             Scan with the phone’s camera app. Any phone or tablet on this WiFi can join, and an
             iPad can take over as the remote control from the same page.
           </span>

@@ -7,13 +7,13 @@ import {
   FilmProps,
   FORMATS,
 } from '../../../video/src/types';
+import SpinePage from '../components/Spine';
 import { pickRootFolder } from '../lib/folder';
 import { isHosted } from '../lib/platform';
+import { colorForKey, textOn } from '../lib/theme';
 import type { RenderProgress } from '../lib/render-browser';
 import { Manifest, SessionStore, getStore } from '../lib/session-store';
 import { Json, StudioSocket } from '../lib/ws';
-
-const ANGLE_COLORS = ['#5b9dff', '#3dd68c', '#f5a623', '#e5484d', '#b98aff', '#4dd0e1'];
 
 export default function Edit() {
   const sessionId = new URLSearchParams(location.search).get('session');
@@ -37,18 +37,15 @@ export default function Edit() {
 
   if (needsFolder) {
     return (
-      <div className="home-page">
-        <header className="check-header">
-          <h1>camerasoup</h1>
-          <span>editor</span>
-        </header>
-        <section className="home-action">
-          <h2>Which folder holds the recordings?</h2>
-          <p className="hint">
-            The same folder the studio records into. The browser asks once per computer.
-          </p>
+      <SpinePage>
+        <span className="meta">Editor</span>
+        <h1>Which folder holds the recordings?</h1>
+        <p className="lede">
+          The same folder the studio records into. The browser asks once per computer.
+        </p>
+        <div className="actions-row" style={{ marginTop: 8 }}>
           <button
-            className="big"
+            className="pill solid"
             onClick={async () => {
               try {
                 await pickRootFolder();
@@ -64,16 +61,19 @@ export default function Edit() {
           >
             Choose folder
           </button>
-        </section>
-      </div>
+        </div>
+      </SpinePage>
     );
   }
   if (!sessionId) return <SessionPicker sessions={sessions} />;
   if (!manifest) {
     return (
-      <div className="center-card" style={{ margin: 'auto' }}>
-        <p className="hint">Loading session…</p>
-      </div>
+      <SpinePage>
+        <div className="join-status">
+          <span className="dot active" />
+          Loading session…
+        </div>
+      </SpinePage>
     );
   }
   return <Editor manifest={manifest} store={store!} />;
@@ -82,21 +82,25 @@ export default function Edit() {
 function SessionPicker({ sessions }: { sessions: Manifest[] | null }) {
   const home = isHosted() ? '/studio' : '/producer';
   return (
-    <div className="center-card" style={{ margin: 'auto' }}>
+    <SpinePage>
+      <span className="meta">Editor</span>
       <h1>Edit a session</h1>
       {!sessions && <p className="hint">Loading…</p>}
-      {sessions?.length === 0 && <p className="hint">No sessions yet — record one first.</p>}
-      {sessions?.map((m) => (
-        <a key={m.id} href={`/edit?session=${m.id}`}>
-          <button style={{ width: '100%' }}>
-            {m.id} — {m.sources.map((s) => s.id).join(', ')}
-          </button>
+      {sessions?.length === 0 && <p className="lede">No sessions yet — record one first.</p>}
+      <div className="roles">
+        {sessions?.map((m) => (
+          <a key={m.id} className="role" href={`/edit?session=${m.id}`}>
+            <b>{m.id}</b>
+            <span>{m.sources.map((s) => s.id).join(' · ')}</span>
+          </a>
+        ))}
+      </div>
+      <div className="actions-row">
+        <a href={home}>
+          <button className="pill outline">← Studio</button>
         </a>
-      ))}
-      <a href={home}>
-        <button style={{ width: '100%' }}>← Studio</button>
-      </a>
-    </div>
+      </div>
+    </SpinePage>
   );
 }
 
@@ -348,36 +352,42 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
 
   if (sources.length === 0) {
     return (
-      <div className="center-card" style={{ margin: 'auto' }}>
-        <h1>{manifest.id}</h1>
-        <p className="hint">This session has no usable footage.</p>
-        <a href="/edit">
-          <button>← Sessions</button>
-        </a>
-      </div>
+      <SpinePage>
+        <span className="meta">{manifest.id}</span>
+        <h1>This session has no usable footage.</h1>
+        <div className="actions-row">
+          <a href="/edit">
+            <button className="pill outline">← Sessions</button>
+          </a>
+        </div>
+      </SpinePage>
     );
   }
 
-  const colorOf = (id: string) =>
-    ANGLE_COLORS[sources.findIndex((s) => s.id === id) % ANGLE_COLORS.length];
+  const colorOf = (id: string) => colorForKey(sources.findIndex((s) => s.id === id) + 1);
   const activeId = activeSourceAt(frame);
   const activeSource = sources.find((s) => s.id === activeId) ?? null;
   const audioSource = sources.find((s) => s.id === audioSourceId) ?? sources[0];
 
   return (
     <div className="edit-page">
-      <header className="producer-header">
-        <a href="/edit">
-          <button>←</button>
+      <header className="edit-header">
+        <a href="/edit" className="back">
+          ← Sessions
         </a>
-        <h1>{manifest.id}</h1>
-        <button onClick={toggle}>{playing ? '❚❚' : '▶'}</button>
-        <span className="kind">
-          {formatFrame(frame, fps)} / {formatFrame(total, fps)}
+        <span className="session-id">{manifest.id}</span>
+        <button className="pill ghost small" onClick={toggle}>
+          {playing ? '❚❚' : '▶'}
+        </button>
+        <span className="timecode">
+          {formatFrame(frame, fps)} <span className="total">/ {formatFrame(total, fps)}</span>
         </span>
+        <button className="pill ghost small" disabled={cuts.length === 0} onClick={() => updateCuts([])}>
+          Clear cuts
+        </button>
         <span className="spacer" />
-        <label className="kind">
-          audio&nbsp;
+        <label className="field">
+          audio
           <select
             value={audioSourceId ?? ''}
             onChange={(e) => setAudioSourceId(e.target.value || null)}
@@ -389,11 +399,8 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
             ))}
           </select>
         </label>
-        <button disabled={cuts.length === 0} onClick={() => updateCuts([])}>
-          Clear cuts
-        </button>
-        <label className="kind">
-          preview&nbsp;
+        <label className="field">
+          preview
           <select value={format} onChange={(e) => setFormat(e.target.value as FilmFormat)}>
             {(Object.keys(FORMATS) as FilmFormat[]).map((f) => (
               <option key={f} value={f}>
@@ -403,12 +410,12 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
           </select>
         </label>
         {render.state === 'running' ? (
-          <span className="kind">
+          <span className="field">
             rendering {render.format ?? ''} {Math.round(render.progress * 100)}%
           </span>
         ) : (
           <button
-            className="rec-button"
+            className="render-button"
             onClick={() => {
               setRender({ state: 'running', progress: 0 });
               if (store.kind === 'server') {
@@ -444,21 +451,43 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
       </header>
 
       {render.state === 'done' && (
-        <div className="banner" style={{ background: 'var(--ok)', color: '#08110c' }}>
-          Rendered {(render.files ?? []).join(' and ')} into the session folder.{' '}
+        <div className="banner">
+          Rendered {(render.files ?? []).join(' and ')} into the session folder.
           {store.kind === 'server' && (
-            <button onClick={() => void store.reveal(manifest.id)}>Reveal</button>
+            <button className="pill ghost small" onClick={() => void store.reveal(manifest.id)}>
+              Reveal
+            </button>
           )}
         </div>
       )}
-      {render.state === 'error' && <div className="banner">Render failed: {render.message}</div>}
+      {render.state === 'error' && <div className="banner error">Render failed: {render.message}</div>}
 
       <div className="edit-main">
+        <div className="rail" style={{ paddingBottom: 0 }}>
+          {sources.map((s, i) => {
+            const color = colorForKey(i + 1);
+            return (
+              <div
+                key={s.id}
+                className="cam-spine"
+                style={{ background: color }}
+                onClick={() => addCut(s.id)}
+                title={`Cut to ${s.id}`}
+              >
+                <div className="cam-spine-label" style={{ color: textOn(color) }}>
+                  <span className="num">{i + 1}</span>
+                  &nbsp;{s.id}
+                </div>
+              </div>
+            );
+          })}
+        </div>
         <div className="edit-program" onClick={toggle}>
           <ProgramCanvas
             width={FORMATS[format].width}
             height={FORMATS[format].height}
             activeSource={activeSource}
+            activeColor={activeId ? colorOf(activeId) : '#000'}
             videoEls={videoEls}
           />
         </div>
@@ -484,9 +513,9 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               }}
             />
           ))}
-          <p className="hint">
-            Press 1–{sources.length} (or click an angle) to cut. Space plays, ←/→ steps,
-            backspace removes the cut at the playhead.
+          <p className="edit-hint">
+            1–{sources.length} or click cuts. Space plays, ←/→ steps, ⌫ removes the cut at the
+            playhead.
           </p>
         </div>
       </div>
@@ -523,11 +552,13 @@ function ProgramCanvas({
   width,
   height,
   activeSource,
+  activeColor,
   videoEls,
 }: {
   width: number;
   height: number;
   activeSource: EditSource | null;
+  activeColor: string;
   videoEls: React.MutableRefObject<Map<string, HTMLVideoElement>>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -570,7 +601,7 @@ function ProgramCanvas({
       width={width}
       height={height}
       className="program-canvas"
-      style={{ aspectRatio: `${width} / ${height}` }}
+      style={{ aspectRatio: `${width} / ${height}`, outline: `4px solid ${activeColor}` }}
     />
   );
 }
@@ -651,8 +682,8 @@ function AngleTile({
 
   return (
     <div
-      className={`angle${active ? ' active' : ''}`}
-      style={active ? { borderColor: color } : undefined}
+      className="angle"
+      style={active ? { outline: `4px solid ${color}`, outlineOffset: -4 } : undefined}
       onClick={onCut}
     >
       <video
@@ -666,10 +697,9 @@ function AngleTile({
         preload="auto"
         style={source.rotation ? { transform: `rotate(${source.rotation}deg)` } : undefined}
       />
-      <span className="key" style={{ background: color }}>
-        {index + 1}
+      <span className="tag" style={{ background: color, color: textOn(color) }}>
+        {index + 1} {source.id}
       </span>
-      <span className="angle-name">{source.id}</span>
       <button
         className="angle-rotate"
         title={`Rotate (now ${source.rotation ?? 0}°)`}
@@ -755,6 +785,7 @@ function Timeline({
             style={{
               width: `${(seg.len / duration) * 100}%`,
               background: colorOf(seg.sourceId),
+              color: textOn(colorOf(seg.sourceId)),
             }}
             title={`${seg.sourceId} @ ${formatFrame(seg.start, fps)}`}
           >
@@ -783,6 +814,13 @@ function Timeline({
           />
         ))}
       <div className="playhead" style={{ left: `${(frame / duration) * 100}%` }} />
+      <div
+        className="playhead-time"
+        // Clamped so the label stays inside the track at either end.
+        style={{ left: `${Math.min(96, Math.max(4, (frame / duration) * 100))}%` }}
+      >
+        {formatFrame(frame, fps)}
+      </div>
     </div>
   );
 }

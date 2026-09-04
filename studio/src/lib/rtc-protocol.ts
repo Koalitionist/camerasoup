@@ -37,7 +37,7 @@ export type CameraToHub =
     };
 
 export type HubToCamera =
-  | { type: 'hello-ack'; sourceId: string; hubTime: number }
+  | { type: 'hello-ack'; sourceId: string; hubTime: number; keyNumber: number }
   | { type: 'pong'; t0: number; t1: number }
   | { type: 'record-start'; sessionId: string; hubTime: number; resumed?: boolean }
   | { type: 'record-stop'; sessionId: string }

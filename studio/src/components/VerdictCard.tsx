@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { CheckReport } from '../lib/check';
 
-// The verdict, shown identically on the Mac and the phone. Copy gives the
-// full report as JSON — the thing to paste into a bug report.
+// The verdict, shown identically on the computer and the phone: a rounded
+// panel with a half-pill edge in the state colour. Copy gives the full
+// report as JSON — the thing to paste into a bug report.
 export default function VerdictCard({
   report,
   onAgain,
@@ -23,7 +24,7 @@ export default function VerdictCard({
     }
   };
   return (
-    <section className={`verdict ${report.verdict}`}>
+    <section className={`edged verdict ${report.verdict}`}>
       <h2>{report.headline}</h2>
       <ul>
         {report.lines.map((line, i) => (
@@ -39,7 +40,7 @@ export default function VerdictCard({
             <b>{report.cameras720}</b>cameras at 720p
           </div>
           <div>
-            <b>{report.mbps.toFixed(0)}</b>Mbps phone → Mac
+            <b>{report.mbps.toFixed(0)}</b>Mbps to the computer
           </div>
           <div>
             <b>{report.rttMs}</b>ms round trip
@@ -47,8 +48,14 @@ export default function VerdictCard({
         </div>
       )}
       <div className="actions">
-        {onAgain && <button onClick={onAgain}>{againLabel}</button>}
-        <button onClick={copy}>{copied ? 'Copied' : 'Copy diagnostics'}</button>
+        {onAgain && (
+          <button className="pill outline" onClick={onAgain}>
+            {againLabel}
+          </button>
+        )}
+        <button className="pill outline" onClick={copy}>
+          {copied ? 'Copied' : 'Copy diagnostics'}
+        </button>
       </div>
     </section>
   );

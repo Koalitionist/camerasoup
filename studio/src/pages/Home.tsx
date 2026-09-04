@@ -1,7 +1,16 @@
 import { useState } from 'react';
+import SpinePage from '../components/Spine';
 import { platformInfo } from '../lib/platform';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const STRIPES = [
+  { text: 'Record every angle', bg: '#1F6FE5', fg: '#fff', width: '100%' },
+  { text: 'Cut live with 1 2 3', bg: '#FFC61A', fg: '#111', width: '92%' },
+  { text: 'Fix cuts afterwards', bg: '#FF3B2F', fg: '#fff', width: '84%' },
+  { text: 'Render 4:5 + 9:16', bg: '#6F3FB8', fg: '#fff', width: '76%' },
+  { text: 'Footage stays home', bg: '#22B8E0', fg: '#111', width: '68%' },
+];
 
 // The front door of camerasoup.com. Says who does what, works out which
 // role this device can play, and offers exactly that.
@@ -14,93 +23,93 @@ export default function Home({ notice }: { notice?: string }) {
   };
 
   return (
-    <div className="home-page">
-      <header className="check-header">
-        <h1>camerasoup</h1>
-        <span>a multicam studio in your browser</span>
-      </header>
-
-      {notice && <div className="notice">{notice}</div>}
-
-      <p className="lede">
-        Your Mac records. Your iPhones and iPads are the cameras. Nothing gets installed, and the
-        footage never leaves your WiFi.
-      </p>
-
-      <section className="roles">
-        <div className="role">
-          <b>Mac with Chrome</b>
-          <span>
-            Runs the show and keeps the footage. A PC with Chrome, Edge, Brave or Arc works too.
-          </span>
-        </div>
-        <div className="role">
-          <b>iPhone, iPad, Android</b>
-          <span>Each one is a camera. Scan the Mac’s code in Safari or Chrome, name the angle, done.</span>
-        </div>
-        <div className="role">
-          <b>iPad as remote control</b>
-          <span>
-            Any spare device can be the control room: see every camera and press REC from across
-            the room while the Mac keeps recording.
-          </span>
-        </div>
-      </section>
-
-      {platform.canRecord ? (
-        <section className="home-action">
-          <h2>{cap(platform.label)} can record.</h2>
-          <p className="hint">
-            Pick a folder for the footage, then add cameras by scanning the code that appears.
+    <SpinePage>
+      {notice && <div className="edged notice">{notice}</div>}
+      <div className="home-grid">
+        <div className="home-col">
+          <span className="meta">A multicam studio in your browser</span>
+          <h1>Your Mac records. Your iPhones and iPads are the cameras.</h1>
+          <p className="lede">
+            Nothing gets installed, and the footage never leaves your WiFi.
           </p>
-          <button className="big" onClick={() => (location.href = '/studio')}>
-            Start the studio
-          </button>
-          <button onClick={() => (location.href = '/check')}>
-            First check my network (10 seconds)
-          </button>
-        </section>
-      ) : platform.desktop ? (
-        <section className="home-action">
-          <h2>Open this page in Chrome to record.</h2>
-          <p className="hint">
-            Safari and Firefox can’t save recordings into a folder yet. Chrome, Edge, Brave or Arc
-            can. Any browser can still join as a camera below.
-          </p>
-        </section>
-      ) : (
-        <section className="home-action">
-          <h2>{cap(platform.label)} is a camera.</h2>
-          <p className="hint">
-            Recording needs a Mac with Chrome. Open camerasoup.com on the Mac first, then scan its
-            code with {platform.label} or type the code here.
-          </p>
-        </section>
-      )}
+          <div className="roles">
+            <div className="role">
+              <b>Mac with Chrome</b>
+              <span>Runs the show and keeps the footage.</span>
+            </div>
+            <div className="role">
+              <b>iPhone, iPad, Android</b>
+              <span>Each one is a camera. Scan the code, name the angle, done.</span>
+            </div>
+            <div className="role">
+              <b>iPad as remote</b>
+              <span>Press REC from across the room.</span>
+            </div>
+          </div>
 
-      <section className="home-join">
-        <label htmlFor="join-code">Have a code from the Mac?</label>
-        <div className="code-row">
-          <input
-            id="join-code"
-            value={code}
-            placeholder="ABC123"
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            inputMode="text"
-            onChange={(e) => setCode(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') join();
-            }}
-          />
-          <button disabled={clean.length < 4} onClick={join}>
-            Join as a camera
-          </button>
+          {platform.canRecord ? (
+            <div className="actions-row">
+              <button className="pill solid" onClick={() => (location.href = '/studio')}>
+                Start the studio
+              </button>
+              <button className="pill outline" onClick={() => (location.href = '/check')}>
+                Check my network · 10 s
+              </button>
+              <input
+                className="code-input"
+                value={code}
+                placeholder="ABC123"
+                aria-label="Join code from the computer"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                onChange={(e) => setCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') join();
+                }}
+              />
+            </div>
+          ) : (
+            <div className="actions-row" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+              <p className="lede" style={{ fontSize: 17 }}>
+                {platform.desktop
+                  ? 'Open this page in Chrome, Edge, Brave or Arc to record. Any browser can still join as a camera.'
+                  : `${cap(platform.label)} is a camera. Open camerasoup.com on the computer first, then scan its code or type it here.`}
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <input
+                  className="code-input"
+                  value={code}
+                  placeholder="ABC123"
+                  aria-label="Join code from the computer"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') join();
+                  }}
+                />
+                <button className="pill solid" disabled={clean.length < 4} onClick={join}>
+                  Join as a camera
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </section>
 
-      <p className="hint">Free while it’s being built.</p>
-    </div>
+        <div className="stripes">
+          {STRIPES.map((s) => (
+            <div
+              key={s.text}
+              className="stripe"
+              style={{ background: s.bg, color: s.fg, width: s.width }}
+            >
+              {s.text}
+            </div>
+          ))}
+        </div>
+      </div>
+    </SpinePage>
   );
 }

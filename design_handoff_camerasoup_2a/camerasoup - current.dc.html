@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+@font-face{font-family:'Satoshi';src:url('fonts/Satoshi-Variable.woff2') format('woff2');font-weight:300 900;font-display:swap}
+body{margin:0;background:#2a2d33;font-family:'Satoshi',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e8eaee;-webkit-font-smoothing:antialiased}
+a{color:#5b9dff}a:hover{color:#8ab8ff}
+@keyframes pulse{50%{opacity:.35}}
+</style>
+</helmet>
+<div style="padding:40px;display:flex;flex-direction:column;gap:48px;font-size:16px;line-height:normal">
+  <div style="font:600 13px/1 ui-monospace,monospace;color:#8a93a3;letter-spacing:.08em;text-transform:uppercase">Baseline — current camerasoup studio UI, recreated from studio/src</div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <!-- Studio / producer -->
+    <div data-screen-label="Studio" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">/studio · 1440×900 · Studio.tsx + ControlView.tsx</div>
+      <div style="width:1440px;background:#0d0f12;color:#e8eaee;display:flex;flex-direction:column;overflow:hidden">
+        <header style="display:flex;align-items:center;gap:16px;padding:14.4px 19.2px;border-bottom:1px solid #262b33">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#3dd68c"></span>
+          <h1 style="margin:0;font-size:16.8px;letter-spacing:.02em;font-weight:700">camerasoup</h1>
+          <button style="font:inherit;border:0;background:transparent;color:#5b9dff;padding:.2em 0;cursor:pointer">+ camera</button>
+          <span style="color:#8a93a3;font-size:13.6px">3 sources</span>
+          <span style="flex:1"></span>
+          <button style="display:flex;align-items:center;gap:.6em;font:inherit;font-weight:700;font-size:16px;padding:.7em 1.5em;background:#e5484d;border:0;color:#fff;cursor:pointer">● REC</button>
+        </header>
+        <main style="height:842px;display:grid;gap:2px;padding:2px;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);grid-auto-flow:row dense">
+          <div style="grid-column:1/3;grid-row:1/3;position:relative;background:#16191f;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#1c2028 0 12px,#232830 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#8a93a3">program · topdown feed</div>
+            <div style="position:absolute;top:0;left:0;z-index:2;padding:8px 18px 12px 12px;font-weight:700;line-height:1.02;letter-spacing:-.01em;background:#5b9dff;color:#fff"><span style="display:block;font-size:41.6px">1</span><span style="display:block;font-size:24px">topdown</span></div>
+            <span style="position:absolute;bottom:8px;left:8px;z-index:2;width:9px;height:9px;border-radius:50%;background:#3dd68c"></span>
+          </div>
+          <div style="position:relative;background:#16191f;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#1c2028 0 12px,#232830 12px 24px);filter:brightness(.35);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#8a93a3">topdown feed</div>
+            <div style="position:absolute;top:0;left:0;z-index:2;padding:5px 12px 8px 8px;font-weight:700;line-height:1.02;letter-spacing:-.01em;background:#5b9dff;color:#fff"><span style="display:block;font-size:24px">1</span><span style="display:block;font-size:16px">topdown</span></div>
+            <span style="position:absolute;bottom:8px;left:8px;z-index:2;width:9px;height:9px;border-radius:50%;background:#3dd68c"></span>
+          </div>
+          <div style="position:relative;background:#16191f;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#1c2028 0 12px,#232830 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#8a93a3">face feed</div>
+            <div style="position:absolute;top:0;left:0;z-index:2;padding:5px 12px 8px 8px;font-weight:700;line-height:1.02;letter-spacing:-.01em;background:#3dd68c;color:#0d0f12"><span style="display:block;font-size:24px">2</span><span style="display:block;font-size:16px">face</span></div>
+            <span style="position:absolute;bottom:8px;left:8px;z-index:2;width:9px;height:9px;border-radius:50%;background:#3dd68c"></span>
+          </div>
+          <div style="position:relative;background:#16191f;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#8a93a3">screen (letterboxed)</div>
+            <div style="position:absolute;top:0;left:0;z-index:2;padding:5px 12px 8px 8px;font-weight:700;line-height:1.02;letter-spacing:-.01em;background:#f5a623;color:#0d0f12"><span style="display:block;font-size:24px">3</span><span style="display:block;font-size:16px">screen</span></div>
+            <span style="position:absolute;bottom:8px;left:8px;z-index:2;width:9px;height:9px;border-radius:50%;background:#3dd68c"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11.2px;border:1px dashed #262b33;background:transparent;text-align:center;padding:12.8px">
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">+ iPhone / iPad</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">+ this screen</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">+ this webcam</button>
+          </div>
+        </main>
+        <section style="padding:0 19.2px 22.4px">
+          <h2 style="margin:0 0 9.6px;font-size:15.2px;color:#8a93a3;font-weight:700">Recordings in Movies/camerasoup</h2>
+          <div style="display:flex;align-items:center;gap:13.2px;padding:8.1px 11.8px;border:1px solid #262b33;margin-bottom:7.4px;font-size:14.7px">
+            <strong>20260821-162215</strong>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">Edit</button>
+            <span style="color:#8a93a3">topdown 13s · face 13s · action 13s</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:13.2px;padding:8.1px 11.8px;border:1px solid #262b33;margin-bottom:7.4px;font-size:14.7px">
+            <strong>20260821-160536</strong>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">Edit</button>
+            <span style="color:#8a93a3">topdown 41s · face 41s · screen 41s</span>
+          </div>
+          <p style="margin:0;color:#8a93a3;font-size:14.4px">Edit cuts the show and renders 4:5 and 9:16 straight into the session folder.</p>
+        </section>
+      </div>
+    </div>
+
+    <!-- Editor -->
+    <div data-screen-label="Editor" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">/edit?session= · 1440×900 · Edit.tsx</div>
+      <div style="width:1440px;height:900px;background:#0d0f12;display:flex;flex-direction:column;overflow:hidden">
+        <header style="display:flex;align-items:center;gap:16px;padding:14.4px 19.2px;border-bottom:1px solid #262b33">
+          <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">←</button>
+          <h1 style="margin:0;font-size:16.8px;letter-spacing:.02em;font-weight:700">20260821-162215</h1>
+          <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">▶</button>
+          <span style="color:#8a93a3;font-size:13.6px">0:04.12 / 0:13.02</span>
+          <span style="flex:1"></span>
+          <label style="color:#8a93a3;font-size:13.6px;display:flex;align-items:center">audio&nbsp;<span style="font:inherit;font-size:16px;color:#e8eaee;background:#16191f;border:1px solid #262b33;padding:.3em .5em">face ▾</span></label>
+          <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">Clear cuts</button>
+          <label style="color:#8a93a3;font-size:13.6px;display:flex;align-items:center">preview&nbsp;<span style="font:inherit;font-size:16px;color:#e8eaee;background:#16191f;border:1px solid #262b33;padding:.3em .5em">4:5 ▾</span></label>
+          <button style="font:inherit;font-weight:700;font-size:16px;padding:.7em 1.5em;background:#e5484d;border:0;color:#fff;cursor:pointer">Render 4:5 + 9:16</button>
+        </header>
+        <div style="flex:1;min-height:0;display:flex;gap:16px;padding:16px 19.2px">
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;min-width:0">
+            <div style="height:100%;max-height:630px;aspect-ratio:4/5;background:#000;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#8a93a3">program canvas 1080×1350</div>
+          </div>
+          <div style="width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:11.2px">
+            <div style="position:relative;border:2px solid #5b9dff;overflow:hidden;background:#000;cursor:pointer">
+              <div style="width:100%;aspect-ratio:9/16;max-height:300px;background:repeating-linear-gradient(45deg,#1c2028 0 12px,#232830 12px 24px)"></div>
+              <span style="position:absolute;top:8px;left:8px;color:#fff;font-weight:700;padding:1px 9px;background:#5b9dff">1</span>
+              <button style="position:absolute;top:6px;right:6px;padding:.15em .5em;font:inherit;color:inherit;background:rgba(13,15,18,.7);border:1px solid #262b33;cursor:pointer">⟳</button>
+              <span style="position:absolute;bottom:6px;left:8px;font-size:13.6px;font-weight:600;text-shadow:0 1px 3px #000">topdown</span>
+            </div>
+            <div style="position:relative;border:2px solid #262b33;overflow:hidden;background:#000;cursor:pointer">
+              <div style="width:100%;aspect-ratio:9/16;max-height:300px;background:repeating-linear-gradient(45deg,#1c2028 0 12px,#232830 12px 24px)"></div>
+              <span style="position:absolute;top:8px;left:8px;color:#fff;font-weight:700;padding:1px 9px;background:#3dd68c">2</span>
+              <button style="position:absolute;top:6px;right:6px;padding:.15em .5em;font:inherit;color:inherit;background:rgba(13,15,18,.7);border:1px solid #262b33;cursor:pointer">⟳</button>
+              <span style="position:absolute;bottom:6px;left:8px;font-size:13.6px;font-weight:600;text-shadow:0 1px 3px #000">face</span>
+            </div>
+            <p style="margin:0;color:#8a93a3;font-size:14.4px">Press 1–2 (or click an angle) to cut. Space plays, ←/→ steps, backspace removes the cut at the playhead.</p>
+          </div>
+        </div>
+        <div style="position:relative;display:flex;height:60px;margin:0 19.2px 19.2px;border:1px solid #262b33;overflow:hidden;cursor:pointer">
+          <div style="width:31%;height:100%;opacity:.75;background:#5b9dff;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)">topdown</span></div>
+          <div style="width:30%;height:100%;opacity:.75;background:#3dd68c;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)">face</span></div>
+          <div style="width:39%;height:100%;opacity:.75;background:#5b9dff;display:flex;align-items:center;justify-content:center"><span style="font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)">topdown</span></div>
+          <div style="position:absolute;top:0;bottom:0;left:31%;width:2px;margin-left:-1px;background:rgba(255,255,255,.9)"></div>
+          <div style="position:absolute;top:0;bottom:0;left:61%;width:2px;margin-left:-1px;background:rgba(255,255,255,.9)"></div>
+          <div style="position:absolute;top:0;bottom:0;left:32%;width:2px;background:#fff"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <!-- Home -->
+    <div data-screen-label="Home" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">camerasoup.com · 1200×760 · Home.tsx</div>
+      <div style="width:1200px;min-height:760px;background:#0d0f12;display:flex;justify-content:center">
+        <div style="width:900px;padding:22.4px 25.6px 48px;display:flex;flex-direction:column;gap:22.4px;line-height:1.45">
+          <header style="display:flex;align-items:baseline;gap:12.8px"><h1 style="margin:0;font-size:20.8px;font-weight:700">camerasoup</h1><span style="color:#8a93a3">a multicam studio in your browser</span></header>
+          <p style="margin:0;font-size:20px;max-width:34em">Your Mac records. Your iPhones and iPads are the cameras. Nothing gets installed, and the footage never leaves your WiFi.</p>
+          <section style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:#262b33;border:1px solid #262b33">
+            <div style="background:#16191f;padding:16px 17.6px;display:flex;flex-direction:column;gap:5.6px"><b>Mac with Chrome</b><span style="color:#8a93a3">Runs the show and keeps the footage. A PC with Chrome, Edge, Brave or Arc works too.</span></div>
+            <div style="background:#16191f;padding:16px 17.6px;display:flex;flex-direction:column;gap:5.6px"><b>iPhone, iPad, Android</b><span style="color:#8a93a3">Each one is a camera. Scan the Mac’s code in Safari or Chrome, name the angle, done.</span></div>
+            <div style="background:#16191f;padding:16px 17.6px;display:flex;flex-direction:column;gap:5.6px"><b>iPad as remote control</b><span style="color:#8a93a3">Any spare device can be the control room: see every camera and press REC from across the room while the Mac keeps recording.</span></div>
+          </section>
+          <section style="border:1px solid #262b33;background:#16191f;padding:20.8px 24px;display:flex;flex-direction:column;gap:11.2px;align-items:flex-start">
+            <h2 style="margin:0;font-size:22.4px;font-weight:700">This Mac can record.</h2>
+            <p style="margin:0;color:#8a93a3;font-size:14.4px">Pick a folder for the footage, then add cameras by scanning the code that appears.</p>
+            <button style="font:inherit;background:#5b9dff;border:1px solid #5b9dff;color:#fff;font-weight:600;padding:.8em 1.6em;cursor:pointer">Start the studio</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">First check my network (10 seconds)</button>
+          </section>
+          <section style="display:flex;flex-direction:column;gap:8px">
+            <label style="color:#8a93a3">Have a code from the Mac?</label>
+            <div style="display:flex;gap:9.6px;flex-wrap:wrap">
+              <span style="font:inherit;font-size:20.8px;letter-spacing:.2em;text-transform:uppercase;width:9em;background:#16191f;border:1px solid #262b33;padding:.55em .8em;color:#757b85">ABC123</span>
+              <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;opacity:.45">Join as a camera</button>
+            </div>
+          </section>
+          <p style="margin:0;color:#8a93a3;font-size:14.4px">Free while it’s being built.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Check -->
+    <div data-screen-label="Check" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">/check · 1200×760 · Check.tsx + VerdictCard.tsx</div>
+      <div style="width:1200px;min-height:760px;background:#0d0f12;display:flex;justify-content:center">
+        <div style="width:1080px;padding:22.4px 25.6px 48px;display:flex;flex-direction:column;gap:19.2px">
+          <header style="display:flex;align-items:baseline;gap:12.8px"><h1 style="margin:0;font-size:20.8px;font-weight:700">camerasoup</h1><span style="color:#8a93a3">Will it work here?</span></header>
+          <p style="margin:0;color:#8a93a3;font-size:14.4px">Run this on the Mac that will record. One phone sends test footage to it for a few seconds, the way it will during a recording. Nothing leaves your network.</p>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:19.2px;align-items:start">
+            <section style="display:flex;flex-direction:column;border:1px solid #262b33;background:#16191f">
+              <div style="display:flex;align-items:center;gap:14.4px;padding:15.2px 16px;border-bottom:1px solid #262b33"><span style="width:9px;height:9px;border-radius:50%;background:#3dd68c"></span><span style="font-weight:600;min-width:8em">This browser</span><span style="color:#8a93a3;flex:1">Chrome 129 · saves to a folder · encodes 214 fps at 1080p</span></div>
+              <div style="display:flex;align-items:center;gap:14.4px;padding:15.2px 16px;border-bottom:1px solid #262b33"><span style="width:9px;height:9px;border-radius:50%;background:#3dd68c"></span><span style="font-weight:600;min-width:8em">Phone</span><span style="color:#8a93a3;flex:1">Safari 18 · camera 1920×1080</span></div>
+              <div style="display:flex;align-items:center;gap:14.4px;padding:15.2px 16px;border-bottom:1px solid #262b33"><span style="width:9px;height:9px;border-radius:50%;background:#3dd68c"></span><span style="font-weight:600;min-width:8em">Connection</span><span style="color:#8a93a3;flex:1">direct · host ↔ host · 4 ms</span></div>
+              <div style="display:flex;align-items:center;gap:14.4px;padding:15.2px 16px"><span style="width:9px;height:9px;border-radius:50%;background:#3dd68c"></span><span style="font-weight:600;min-width:8em">Speed</span><span style="color:#8a93a3;flex:1">186 Mbps phone → Mac</span></div>
+            </section>
+            <aside style="border:1px solid #262b33;background:#16191f;padding:19.2px;display:flex;flex-direction:column;align-items:center;gap:11.2px;text-align:center">
+              <div style="width:240px;height:240px;background:#fff;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#000">QR · camerasoup.com/j/K7Q2PM</div>
+              <div style="font-size:27.2px;letter-spacing:.25em;font-weight:700;font-variant-numeric:tabular-nums">K7Q2PM</div>
+              <div style="color:#8a93a3;font-size:14.4px;word-break:break-all">camerasoup.com/j/K7Q2PM</div>
+              <p style="margin:0;color:#8a93a3;font-size:14.4px">Scan with the phone’s camera app, or type the address in Safari.</p>
+            </aside>
+          </div>
+          <section style="border:1px solid #262b33;border-left:6px solid #3dd68c;background:#16191f;padding:20.8px 24px;display:flex;flex-direction:column;gap:14.4px">
+            <h2 style="margin:0;font-size:24px;font-weight:700">This network can carry four cameras.</h2>
+            <ul style="margin:0;padding-left:19.2px;line-height:1.5"><li>Direct WiFi path between phone and Mac.</li><li>Hardware encoder on the Mac keeps up with 1080p.</li></ul>
+            <div style="display:flex;flex-wrap:wrap;gap:25.6px 38.4px;color:#8a93a3;font-variant-numeric:tabular-nums">
+              <div><b style="display:block;color:#e8eaee;font-size:22.4px">4</b>cameras at 1080p</div>
+              <div><b style="display:block;color:#e8eaee;font-size:22.4px">7</b>cameras at 720p</div>
+              <div><b style="display:block;color:#e8eaee;font-size:22.4px">186</b>Mbps phone → Mac</div>
+              <div><b style="display:block;color:#e8eaee;font-size:22.4px">4</b>ms round trip</div>
+            </div>
+            <div style="display:flex;gap:9.6px;flex-wrap:wrap">
+              <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">Test another phone</button>
+              <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em;cursor:pointer">Copy diagnostics</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <!-- Join picker -->
+    <div data-screen-label="Join" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">/j/K7Q2PM · 390×844 · Join.tsx</div>
+      <div style="width:390px;height:844px;background:#0d0f12;display:flex;flex-direction:column;gap:22.4px;padding:59px 25.6px 48px;line-height:1.45">
+        <header style="display:flex;align-items:baseline;gap:12.8px"><h1 style="margin:0;font-size:20.8px;font-weight:700">camerasoup</h1><span style="color:#8a93a3">room K7Q2PM</span></header>
+        <p style="margin:0;font-size:20px">What should this iPhone do?</p>
+        <div style="display:flex;flex-direction:column;gap:1px;background:#262b33;border:1px solid #262b33">
+          <button style="display:flex;flex-direction:column;align-items:flex-start;gap:4.8px;text-align:left;padding:17.6px 19.2px;border:0;background:#16191f;font:inherit;color:inherit;cursor:pointer"><b style="font-size:18.4px">Be a camera</b><span style="color:#8a93a3">Point it, name the angle, and the Mac records it.</span></button>
+          <button style="display:flex;flex-direction:column;align-items:flex-start;gap:4.8px;text-align:left;padding:17.6px 19.2px;border:0;background:#16191f;font:inherit;color:inherit;cursor:pointer"><b style="font-size:18.4px">Be the remote control</b><span style="color:#8a93a3">See every camera and press REC from here. The Mac keeps recording.</span></button>
+          <button style="display:flex;flex-direction:column;align-items:flex-start;gap:4.8px;text-align:left;padding:17.6px 19.2px;border:0;background:#16191f;font:inherit;color:inherit;cursor:pointer"><b style="font-size:16px;font-weight:500">Test the connection</b><span style="color:#8a93a3">Ten seconds, to see how many cameras this WiFi can carry.</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Name gate -->
+    <div data-screen-label="Camera name" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">camera · name gate · 390×844 · Join.tsx NameGate</div>
+      <div style="width:390px;height:844px;background:#000;display:flex;flex-direction:column">
+        <div style="margin:auto;display:flex;flex-direction:column;gap:16px;padding:32px;width:358.8px">
+          <h1 style="margin:0;font-size:22.4px;font-weight:700">camerasoup camera</h1>
+          <p style="margin:0;color:#8a93a3;font-size:14.4px">Name this angle. The name sticks to this device.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">topdown</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">face</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">action</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">side</button>
+          </div>
+          <div style="font:inherit;background:#16191f;border:1px solid #262b33;padding:.55em .8em">topdown</div>
+          <p style="margin:0;color:#8a93a3;font-size:14.4px">Quality — pick Medium or Low for an older phone or weak WiFi.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #5b9dff;padding:.55em 1em">High · 10 Mbps</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">Medium · 6 Mbps</button>
+            <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">Low · 3 Mbps</button>
+          </div>
+          <button style="font:inherit;padding:.9em 1.2em;font-size:16.8px;font-weight:600;background:#5b9dff;border:0;color:#fff">Start camera</button>
+          <p style="margin:0;color:#8a93a3;font-size:14.4px">Keep this tab open and the screen on while recording. iOS stops the camera if Safari goes to the background or the screen locks.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live camera -->
+    <div data-screen-label="Camera live" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:12px ui-monospace,monospace;color:#8a93a3">camera · recording · 390×844 · Join.tsx LiveCamera</div>
+      <div style="position:relative;width:390px;height:844px;background:#000;display:flex;flex-direction:column;box-shadow:inset 0 0 0 5px #e5484d;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:11.2px;padding:47px 16px 11.2px;background:rgba(13,15,18,.85)">
+          <span style="width:9px;height:9px;border-radius:50%;background:#e5484d;animation:pulse 1.2s infinite"></span>
+          <span style="font-weight:600">topdown</span>
+          <span style="flex:1"></span>
+          <button style="font:inherit;color:inherit;background:#16191f;border:1px solid #262b33;padding:.55em 1em">Rotate</button>
+        </div>
+        <div style="flex:1;background:repeating-linear-gradient(45deg,#111 0 12px,#181818 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#8a93a3">rear camera preview</div>
+        <div style="position:absolute;left:50%;bottom:34px;transform:translateX(-50%);padding:8px 17.6px;background:#e5484d;font-weight:600;letter-spacing:.03em">RECORDING</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

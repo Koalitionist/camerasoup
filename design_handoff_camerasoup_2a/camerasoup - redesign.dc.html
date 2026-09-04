@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+body{margin:0;background:#D9D8D3;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#111;-webkit-font-smoothing:antialiased}
+a{color:#111}a:hover{color:#1F6FE5}
+@keyframes pulse{50%{opacity:.3}}
+</style>
+</helmet>
+<section id="turn-2" style="padding:48px 48px 0;display:flex;flex-direction:column;gap:32px">
+  <div style="font:500 13px/1 ui-monospace,monospace;color:#555;letter-spacing:.08em;text-transform:uppercase">Turn 2 — <a href="#1a">1a</a> layouts + <a href="#1b">1b</a> rounded corners and half-pills</div>
+  <div id="2a" style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:center;gap:12px"><span style="background:#111;color:#fff;font-weight:700;font-size:14px;padding:6px 10px;border-radius:999px">2a</span><span style="font-size:15px"><b>Poster + pills</b> — spine wordmark and vertical camera spines from 1a; every color block is a half-pill, every panel rounded</span></div>
+
+    <div style="display:flex;gap:20px;align-items:flex-start;width:max-content">
+      <div data-screen-label="2a Home" style="width:1200px;height:760px;background:#F4F3EF;color:#111;display:flex;overflow:hidden;border-radius:24px">
+        <div style="width:200px;flex-shrink:0;position:relative;border-right:1px solid #111">
+          <div style="position:absolute;left:8px;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);font-size:126px;font-weight:700;letter-spacing:-.05em;line-height:.8;white-space:nowrap">camerasoup</div>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 440px;gap:40px;padding:36px 0 40px 48px;min-width:0">
+          <div style="display:flex;flex-direction:column;gap:22px;min-height:0">
+            <span style="font-size:15px;font-weight:500">A multicam studio in your browser</span>
+            <h1 style="margin:0;font-size:52px;font-weight:700;letter-spacing:-.04em;line-height:.95;text-wrap:pretty">Your Mac records. Your iPhones and iPads are the cameras.</h1>
+            <p style="margin:0;font-size:20px;line-height:1.3;max-width:26em;font-weight:500">Nothing gets installed, and the footage never leaves your WiFi.</p>
+            <div style="display:flex;flex-direction:column;border-top:1px solid #111;font-size:15px;line-height:1.35">
+              <div style="display:grid;grid-template-columns:170px 1fr;padding:12px 0;border-bottom:1px solid #111"><b>Mac with Chrome</b><span>Runs the show and keeps the footage.</span></div>
+              <div style="display:grid;grid-template-columns:170px 1fr;padding:12px 0;border-bottom:1px solid #111"><b>iPhone, iPad, Android</b><span>Each one is a camera. Scan the code, name the angle, done.</span></div>
+              <div style="display:grid;grid-template-columns:170px 1fr;padding:12px 0;border-bottom:1px solid #111"><b>iPad as remote</b><span>Press REC from across the room.</span></div>
+            </div>
+            <div style="margin-top:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <button style="font:inherit;font-size:18px;font-weight:700;background:#111;color:#fff;border:0;padding:18px 28px;border-radius:999px;cursor:pointer">Start the studio</button>
+              <button style="font:inherit;font-size:18px;font-weight:700;background:transparent;color:#111;border:2px solid #111;padding:16px 26px;border-radius:999px;cursor:pointer">Check my network · 10 s</button>
+              <span style="font-size:18px;font-weight:700;letter-spacing:.2em;border:2px solid #111;border-radius:999px;padding:14px 20px;color:#999">ABC123</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px;align-items:flex-end">
+            <div style="height:64px;width:100%;background:#1F6FE5;color:#fff;border-radius:32px 0 0 32px;box-sizing:border-box;display:flex;align-items:center;padding:0 28px;font-size:28px;font-weight:700;letter-spacing:-.03em">Record every angle</div>
+            <div style="height:64px;width:92%;background:#FFC61A;color:#111;border-radius:32px 0 0 32px;box-sizing:border-box;display:flex;align-items:center;padding:0 28px;font-size:28px;font-weight:700;letter-spacing:-.03em">Cut live with 1 2 3</div>
+            <div style="height:64px;width:84%;background:#FF3B2F;color:#fff;border-radius:32px 0 0 32px;box-sizing:border-box;display:flex;align-items:center;padding:0 28px;font-size:28px;font-weight:700;letter-spacing:-.03em">Fix cuts afterwards</div>
+            <div style="height:64px;width:76%;background:#6F3FB8;color:#fff;border-radius:32px 0 0 32px;box-sizing:border-box;display:flex;align-items:center;padding:0 28px;font-size:28px;font-weight:700;letter-spacing:-.03em">Render 4:5 + 9:16</div>
+            <div style="height:64px;width:68%;background:#22B8E0;color:#111;border-radius:32px 0 0 32px;box-sizing:border-box;display:flex;align-items:center;padding:0 28px;font-size:28px;font-weight:700;letter-spacing:-.03em">Footage stays home</div>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="2a Phone join" style="width:390px;height:844px;background:#F4F3EF;color:#111;display:flex;overflow:hidden;position:relative;border-radius:24px">
+        <div style="width:104px;flex-shrink:0;position:relative;border-right:1px solid #111"><div style="position:absolute;left:8px;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);font-size:92px;font-weight:700;letter-spacing:-.05em;line-height:.8;white-space:nowrap">camerasoup</div></div>
+        <div style="flex:1;padding:64px 0 32px 0;display:flex;flex-direction:column;gap:24px;min-width:0">
+          <span style="font-size:15px;font-weight:500;padding-left:20px">Room K7Q2PM</span>
+          <h1 style="margin:0;font-size:32px;font-weight:700;letter-spacing:-.04em;line-height:1;padding-left:20px">What should this iPhone do?</h1>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+            <div style="height:84px;width:100%;background:#1F6FE5;color:#fff;border-radius:0 42px 42px 0;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:0 20px;cursor:pointer"><b style="font-size:22px;letter-spacing:-.03em">Be a camera</b><span style="font-size:13px">Point it, name the angle.</span></div>
+            <div style="height:84px;width:90%;background:#FFC61A;color:#111;border-radius:0 42px 42px 0;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:0 20px;cursor:pointer"><b style="font-size:22px;letter-spacing:-.03em">Be the remote</b><span style="font-size:13px">Press REC from here.</span></div>
+            <div style="height:84px;width:80%;background:#22B8E0;color:#111;border-radius:0 42px 42px 0;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:0 20px;cursor:pointer"><b style="font-size:22px;letter-spacing:-.03em">Test connection</b><span style="font-size:13px">Ten seconds.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="2a Phone camera" style="width:390px;height:844px;background:#000;color:#fff;display:flex;overflow:hidden;position:relative;border-radius:24px">
+        <div style="width:80px;flex-shrink:0;padding:56px 0 24px 0;display:flex"><div style="flex:1;background:#1F6FE5;border-radius:0 40px 40px 0;position:relative;overflow:hidden"><div style="position:absolute;left:0;bottom:20px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff;padding-left:14px"><span style="font-size:44px">1</span>&nbsp;topdown</div></div></div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:56px 16px 24px 12px;gap:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;height:40px"><span>camerasoup</span><span style="border:2px solid #fff;border-radius:999px;padding:6px 14px;cursor:pointer">Rotate</span></div>
+          <div style="flex:1;border-radius:20px;background:repeating-linear-gradient(45deg,#111 0 12px,#181818 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#777">rear camera</div>
+          <div style="height:72px;background:#FF3B2F;border-radius:999px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:28px;font-weight:700;letter-spacing:-.03em"><span><span style="animation:pulse 1.2s infinite">●</span> REC</span><span style="font-variant-numeric:tabular-nums">0:42</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:20px;align-items:flex-start;width:max-content">
+      <div data-screen-label="2a Studio" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;overflow:hidden;border-radius:24px">
+        <div style="width:112px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;padding:0 0 12px 0">
+          <div style="height:100px;display:flex;align-items:center;justify-content:center"><div style="transform:rotate(-90deg);font-size:15px;font-weight:700;letter-spacing:-.02em;white-space:nowrap">camerasoup</div></div>
+          <div style="flex:1;background:#1F6FE5;border-radius:0 56px 56px 0;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff;padding-left:14px"><span style="font-size:48px">1</span>&nbsp;topdown</div></div>
+          <div style="flex:1;background:#FFC61A;border-radius:0 56px 56px 0;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#111;padding-left:14px"><span style="font-size:48px">2</span>&nbsp;face</div></div>
+          <div style="flex:1;background:#FF3B2F;border-radius:0 56px 56px 0;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff;padding-left:14px"><span style="font-size:48px">3</span>&nbsp;screen</div></div>
+          <div style="height:112px;border:2px dashed #3A3A3C;border-left:0;border-radius:0 56px 56px 0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:300;color:#9A9A96;cursor:pointer">+</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;padding:0 24px 24px 18px;gap:6px">
+          <header style="height:100px;display:flex;align-items:center;gap:32px;padding:0 8px">
+            <span style="font-size:15px;font-weight:500;color:#9A9A96">3 sources · Movies/camerasoup</span>
+            <span style="font-size:15px;font-weight:500;color:#9A9A96">1–3 switches the live camera</span>
+            <span style="flex:1"></span>
+            <span style="font-size:36px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums">00:00</span>
+            <button style="font:inherit;font-size:24px;font-weight:700;background:#FF3B2F;color:#fff;border:0;padding:0 36px;height:64px;border-radius:999px;cursor:pointer;letter-spacing:-.02em">● REC</button>
+          </header>
+          <main style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;min-height:0">
+            <div style="grid-row:1/3;position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);outline:4px solid #1F6FE5;outline-offset:-4px"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program · topdown</div><span style="position:absolute;left:16px;top:16px;background:#1F6FE5;color:#fff;font-size:20px;font-weight:700;padding:8px 18px;border-radius:999px">1 topdown</span></div>
+            <div style="position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);opacity:.5;cursor:pointer"><span style="position:absolute;left:14px;top:14px;background:#1F6FE5;color:#fff;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">1 topdown</span><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">on air</div></div>
+            <div style="position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);cursor:pointer"><span style="position:absolute;left:14px;top:14px;background:#FFC61A;color:#111;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">2 face</span></div>
+            <div style="position:relative;border-radius:24px;overflow:hidden;background:#000;cursor:pointer"><span style="position:absolute;left:14px;top:14px;background:#FF3B2F;color:#fff;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">3 screen</span><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">screen · letterboxed</div></div>
+            <div style="border:2px dashed #3A3A3C;border-radius:24px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;justify-content:flex-end;padding:20px;font-size:16px;font-weight:700">
+              <span style="border:2px solid #F2F1EC;border-radius:999px;padding:8px 16px;cursor:pointer">+ iPhone / iPad</span><span style="border:2px solid #F2F1EC;border-radius:999px;padding:8px 16px;cursor:pointer">+ this screen</span><span style="border:2px solid #F2F1EC;border-radius:999px;padding:8px 16px;cursor:pointer">+ this webcam</span>
+            </div>
+          </main>
+          <section style="height:88px;display:flex;align-items:center;gap:32px;padding:0 8px;font-size:15px;border-top:1px solid #2A2A2C;margin-top:12px">
+            <span style="color:#9A9A96;font-weight:500">Recordings</span>
+            <span style="font-weight:700;font-size:18px;letter-spacing:-.01em">20260821-162215</span><span style="color:#9A9A96">topdown · face · action · 13 s</span>
+            <span style="border:2px solid #F2F1EC;border-radius:999px;padding:6px 14px;font-weight:700;cursor:pointer">Edit</span>
+            <span style="flex:1"></span>
+            <span style="color:#9A9A96">Edit cuts the show and renders 4:5 + 9:16 into the session folder.</span>
+          </section>
+        </div>
+      </div>
+
+      <div data-screen-label="2a Editor" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;flex-direction:column;overflow:hidden;border-radius:24px">
+        <header style="height:96px;display:flex;align-items:center;gap:32px;padding:0 24px 0 32px">
+          <span style="font-size:15px;font-weight:700;cursor:pointer">← Sessions</span>
+          <span style="font-size:28px;font-weight:700;letter-spacing:-.03em">20260821-162215</span>
+          <span style="font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#9A9A96">0:04.12 <span style="color:#555">/ 0:13.02</span></span>
+          <span style="flex:1"></span>
+          <span style="font-size:15px;font-weight:500;color:#9A9A96">audio <b style="color:#F2F1EC">face ▾</b></span>
+          <span style="font-size:15px;font-weight:500;color:#9A9A96">preview <b style="color:#F2F1EC">4:5 ▾</b></span>
+          <button style="font:inherit;font-size:20px;font-weight:700;background:#F2F1EC;color:#111;border:0;padding:0 28px;height:56px;border-radius:999px;cursor:pointer;letter-spacing:-.02em">Render 4:5 + 9:16</button>
+        </header>
+        <div style="flex:1;display:flex;min-height:0;gap:18px;padding:0 24px 0 0">
+          <div style="width:112px;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+            <div style="flex:1;background:#1F6FE5;border-radius:0 56px 56px 0;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff;padding-left:14px"><span style="font-size:48px">1</span>&nbsp;topdown</div></div>
+            <div style="flex:1;background:#FFC61A;border-radius:0 56px 56px 0;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#111;padding-left:14px"><span style="font-size:48px">2</span>&nbsp;face</div></div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center">
+            <div style="height:100%;aspect-ratio:4/5;background:#000;border-radius:24px;outline:4px solid #1F6FE5;outline-offset:-4px;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program 1080×1350 · topdown</div>
+          </div>
+          <div style="width:320px;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+            <div style="flex:1;position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);outline:4px solid #1F6FE5;outline-offset:-4px;cursor:pointer"><span style="position:absolute;left:14px;top:14px;background:#1F6FE5;color:#fff;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">1 topdown</span><span style="position:absolute;right:16px;top:14px;font-size:20px">⟳</span></div>
+            <div style="flex:1;position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);cursor:pointer"><span style="position:absolute;left:14px;top:14px;background:#FFC61A;color:#111;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">2 face</span><span style="position:absolute;right:16px;top:14px;font-size:20px">⟳</span></div>
+            <p style="margin:6px 0 0;font-size:13px;line-height:1.4;color:#9A9A96">1–2 or click cuts. Space plays, ←/→ steps, ⌫ removes the cut at the playhead.</p>
+          </div>
+        </div>
+        <div style="position:relative;display:flex;gap:6px;height:80px;margin:18px 24px 24px 0;cursor:pointer">
+          <div style="width:31%;background:#1F6FE5;border-radius:0 40px 40px 0;display:flex;align-items:center;padding:0 24px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em">topdown</div>
+          <div style="width:30%;background:#FFC61A;border-radius:0 40px 40px 0;display:flex;align-items:center;padding:0 24px;font-size:22px;font-weight:700;color:#111;letter-spacing:-.02em">face</div>
+          <div style="width:39%;background:#1F6FE5;border-radius:0 40px 40px 0;display:flex;align-items:center;padding:0 24px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em">topdown</div>
+          <div style="position:absolute;top:-10px;bottom:-10px;left:32%;width:3px;background:#fff;border-radius:2px"></div>
+          <div style="position:absolute;top:-30px;left:32%;transform:translateX(-50%);background:#fff;color:#111;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;font-variant-numeric:tabular-nums">0:04.12</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="turn-1" style="padding:48px;display:flex;flex-direction:column;gap:32px">
+  <div style="font:500 13px/1 ui-monospace,monospace;color:#555;letter-spacing:.08em;text-transform:uppercase">Turn 1 — three directions · Helvetica Neue · light site, dark studio · one color per angle</div>
+  <div style="display:flex;gap:64px;align-items:flex-start;flex-wrap:nowrap">
+
+    <!-- ============ 1a POSTER ============ -->
+    <div id="1a" style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:#111;color:#fff;font-weight:700;font-size:14px;padding:6px 10px">1a</span><span style="font-size:15px"><b>Poster</b> — vertical wordmark down the spine; cameras are colored spines too</span></div>
+
+      <div data-screen-label="1a Home" style="width:1200px;height:760px;background:#F4F3EF;color:#111;display:flex;overflow:hidden">
+        <div style="width:200px;flex-shrink:0;position:relative;border-right:1px solid #111">
+          <div style="position:absolute;left:8px;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);font-size:126px;font-weight:700;letter-spacing:-.05em;line-height:.8;white-space:nowrap">camerasoup</div>
+        </div>
+        <div style="flex:1;padding:36px 48px 40px;display:flex;flex-direction:column;gap:36px">
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:500"><span>A multicam studio in your browser</span><span>camerasoup.com · free while it’s built</span></div>
+          <h1 style="margin:0;font-size:66px;font-weight:700;letter-spacing:-.04em;line-height:.95;max-width:14em;text-wrap:pretty">Your Mac records. Your iPhones and iPads are the cameras.</h1>
+          <p style="margin:0;font-size:22px;line-height:1.3;max-width:30em;font-weight:500">Nothing gets installed, and the footage never leaves your WiFi. Cut live with the number keys; render 4:5 and 9:16 in seconds.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #111">
+            <div style="padding:16px 20px 0 0;border-right:1px solid #111;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.35"><b style="font-size:18px">Mac with Chrome</b><span>Runs the show and keeps the footage.</span></div>
+            <div style="padding:16px 20px 0;border-right:1px solid #111;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.35"><b style="font-size:18px">iPhone, iPad, Android</b><span>Each one is a camera. Scan the code, name the angle, done.</span></div>
+            <div style="padding:16px 0 0 20px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.35"><b style="font-size:18px">iPad as remote</b><span>See every camera and press REC from across the room.</span></div>
+          </div>
+          <div style="margin-top:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <button style="font:inherit;font-size:20px;font-weight:700;background:#111;color:#fff;border:0;padding:20px 32px;cursor:pointer">Start the studio</button>
+            <button style="font:inherit;font-size:20px;font-weight:700;background:transparent;color:#111;border:2px solid #111;padding:18px 30px;cursor:pointer">Check my network · 10 s</button>
+            <span style="flex:1"></span>
+            <span style="font-size:15px;font-weight:500">Have a code?</span>
+            <span style="font-size:20px;font-weight:700;letter-spacing:.2em;border-bottom:2px solid #111;padding:8px 4px;color:#999;width:7em">ABC123</span>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="1a Studio" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;overflow:hidden">
+        <div style="width:112px;flex-shrink:0;display:flex;flex-direction:column">
+          <div style="height:112px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #2A2A2C"><div style="transform:rotate(-90deg);font-size:15px;font-weight:700;letter-spacing:-.02em;white-space:nowrap">camerasoup</div></div>
+          <div style="flex:1;background:#1F6FE5;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:16px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff"><span style="font-size:60px">1</span>&nbsp;topdown</div></div>
+          <div style="flex:1;background:#FFC61A;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:16px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#111"><span style="font-size:60px">2</span>&nbsp;face</div></div>
+          <div style="flex:1;background:#FF3B2F;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:16px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff"><span style="font-size:60px">3</span>&nbsp;screen</div></div>
+          <div style="height:112px;display:flex;align-items:center;justify-content:center;border-top:1px solid #2A2A2C;font-size:40px;font-weight:300;cursor:pointer">+</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <header style="height:112px;display:flex;align-items:center;gap:32px;padding:0 32px;border-bottom:1px solid #2A2A2C">
+            <span style="font-size:15px;font-weight:500;color:#9A9A96">3 sources · Movies/camerasoup</span>
+            <span style="font-size:15px;font-weight:500;color:#9A9A96">1–3 switches the live camera</span>
+            <span style="flex:1"></span>
+            <span style="font-size:40px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums">00:00</span>
+            <button style="font:inherit;font-size:28px;font-weight:700;background:#FF3B2F;color:#fff;border:0;padding:0 40px;height:72px;cursor:pointer;letter-spacing:-.02em">● REC</button>
+          </header>
+          <main style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:4px;min-height:0">
+            <div style="grid-row:1/3;position:relative;background:#161617;overflow:hidden;background-image:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px)">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program · topdown</div>
+              <div style="position:absolute;left:0;top:0;background:#1F6FE5;color:#fff;font-size:22px;font-weight:700;padding:10px 16px;letter-spacing:-.02em">1 topdown</div>
+            </div>
+            <div style="position:relative;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);opacity:.5"><div style="position:absolute;left:0;top:0;background:#1F6FE5;color:#fff;font-size:22px;font-weight:700;padding:10px 16px">1 topdown</div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">on air</div></div>
+            <div style="position:relative;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px)"><div style="position:absolute;left:0;top:0;background:#FFC61A;color:#111;font-size:22px;font-weight:700;padding:10px 16px">2 face</div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">face feed</div></div>
+            <div style="position:relative;overflow:hidden;background:#000"><div style="position:absolute;left:0;top:0;background:#FF3B2F;color:#fff;font-size:22px;font-weight:700;padding:10px 16px">3 screen</div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">screen · letterboxed</div></div>
+            <div style="border:1px dashed #3A3A3C;display:flex;flex-direction:column;gap:10px;align-items:flex-start;justify-content:flex-end;padding:20px;font-size:18px;font-weight:700">
+              <span style="cursor:pointer">+ iPhone / iPad</span><span style="cursor:pointer">+ this screen</span><span style="cursor:pointer">+ this webcam</span>
+            </div>
+          </main>
+          <section style="height:120px;border-top:1px solid #2A2A2C;display:flex;align-items:center;gap:40px;padding:0 32px;font-size:15px">
+            <span style="color:#9A9A96;font-weight:500">Recordings</span>
+            <span style="font-weight:700;font-size:18px;letter-spacing:-.01em">20260821-162215</span><span style="color:#9A9A96">topdown · face · action · 13 s</span>
+            <span style="font-weight:700;text-decoration:underline;cursor:pointer">Edit</span>
+            <span style="flex:1"></span>
+            <span style="color:#9A9A96">Edit cuts the show and renders 4:5 + 9:16 into the session folder.</span>
+          </section>
+        </div>
+      </div>
+
+      <div data-screen-label="1a Editor" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;flex-direction:column;overflow:hidden">
+        <header style="height:96px;display:flex;align-items:center;gap:32px;padding:0 32px;border-bottom:1px solid #2A2A2C">
+          <span style="font-size:15px;font-weight:700;cursor:pointer">← Sessions</span>
+          <span style="font-size:28px;font-weight:700;letter-spacing:-.03em">20260821-162215</span>
+          <span style="font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#9A9A96">0:04.12 <span style="color:#555">/ 0:13.02</span></span>
+          <span style="flex:1"></span>
+          <span style="font-size:15px;font-weight:500;color:#9A9A96">audio <b style="color:#F2F1EC">face ▾</b></span>
+          <span style="font-size:15px;font-weight:500;color:#9A9A96">preview <b style="color:#F2F1EC">4:5 ▾</b></span>
+          <button style="font:inherit;font-size:22px;font-weight:700;background:#F2F1EC;color:#111;border:0;padding:0 32px;height:60px;cursor:pointer;letter-spacing:-.02em">Render 4:5 + 9:16</button>
+        </header>
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:112px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid #2A2A2C">
+            <div style="flex:1;background:#1F6FE5;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:16px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff"><span style="font-size:60px">1</span>&nbsp;topdown</div></div>
+            <div style="flex:1;background:#FFC61A;position:relative;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;bottom:16px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#111"><span style="font-size:60px">2</span>&nbsp;face</div></div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px">
+            <div style="height:100%;aspect-ratio:4/5;background:#000;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777;outline:4px solid #1F6FE5;outline-offset:-4px">program 1080×1350 · topdown</div>
+          </div>
+          <div style="width:320px;flex-shrink:0;display:flex;flex-direction:column;gap:4px;padding:24px 24px 24px 0">
+            <div style="flex:1;position:relative;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);outline:4px solid #1F6FE5;outline-offset:-4px;cursor:pointer"><span style="position:absolute;left:0;top:0;background:#1F6FE5;color:#fff;font-size:22px;font-weight:700;padding:8px 14px">1</span><span style="position:absolute;right:12px;top:12px;font-size:20px">⟳</span></div>
+            <div style="flex:1;position:relative;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);cursor:pointer"><span style="position:absolute;left:0;top:0;background:#FFC61A;color:#111;font-size:22px;font-weight:700;padding:8px 14px">2</span><span style="position:absolute;right:12px;top:12px;font-size:20px">⟳</span></div>
+            <p style="margin:8px 0 0;font-size:13px;line-height:1.4;color:#9A9A96">1–2 or click cuts. Space plays, ←/→ steps, ⌫ removes the cut at the playhead.</p>
+          </div>
+        </div>
+        <div style="position:relative;display:flex;height:96px;border-top:1px solid #2A2A2C;cursor:pointer">
+          <div style="width:31%;background:#1F6FE5;display:flex;align-items:flex-end;padding:0 0 10px 14px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em">topdown</div>
+          <div style="width:30%;background:#FFC61A;display:flex;align-items:flex-end;padding:0 0 10px 14px;font-size:22px;font-weight:700;color:#111;letter-spacing:-.02em;border-left:2px solid #0B0B0C">face</div>
+          <div style="width:39%;background:#1F6FE5;display:flex;align-items:flex-end;padding:0 0 10px 14px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em;border-left:2px solid #0B0B0C">topdown</div>
+          <div style="position:absolute;top:0;bottom:0;left:32%;width:3px;background:#fff"></div>
+          <div style="position:absolute;top:-1px;left:32%;transform:translateX(-50%);background:#fff;color:#111;font-size:12px;font-weight:700;padding:2px 6px;font-variant-numeric:tabular-nums">0:04.12</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:20px">
+        <div data-screen-label="1a Phone camera" style="width:390px;height:844px;background:#000;color:#fff;display:flex;overflow:hidden;position:relative">
+          <div style="width:72px;flex-shrink:0;background:#1F6FE5;position:relative;overflow:hidden"><div style="position:absolute;left:0;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);white-space:nowrap;font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff"><span style="font-size:52px">1</span>&nbsp;topdown</div></div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <div style="height:100px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 12px;font-size:15px;font-weight:700"><span>camerasoup</span><span style="cursor:pointer">Rotate</span></div>
+            <div style="flex:1;background:repeating-linear-gradient(45deg,#111 0 12px,#181818 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#777">rear camera</div>
+            <div style="height:120px;background:#FF3B2F;display:flex;align-items:center;justify-content:space-between;padding:0 16px 20px;font-size:34px;font-weight:700;letter-spacing:-.03em"><span>● REC</span><span style="font-variant-numeric:tabular-nums">0:42</span></div>
+          </div>
+        </div>
+        <div data-screen-label="1a Phone join" style="width:390px;height:844px;background:#F4F3EF;color:#111;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="position:absolute;left:8px;bottom:24px;transform-origin:left bottom;transform:rotate(-90deg) translateY(100%);font-size:92px;font-weight:700;letter-spacing:-.05em;line-height:.8;white-space:nowrap">camerasoup</div>
+          <div style="margin-left:120px;padding:64px 20px 32px;display:flex;flex-direction:column;gap:24px;height:100%">
+            <span style="font-size:15px;font-weight:500">Room K7Q2PM</span>
+            <h1 style="margin:0;font-size:36px;font-weight:700;letter-spacing:-.04em;line-height:1">What should this iPhone do?</h1>
+            <div style="display:flex;flex-direction:column;border-top:1px solid #111">
+              <div style="padding:18px 0;border-bottom:1px solid #111;cursor:pointer"><b style="font-size:22px;letter-spacing:-.02em;display:block">Be a camera</b><span style="font-size:14px;line-height:1.35">Point it, name the angle, the Mac records.</span></div>
+              <div style="padding:18px 0;border-bottom:1px solid #111;cursor:pointer"><b style="font-size:22px;letter-spacing:-.02em;display:block">Be the remote</b><span style="font-size:14px;line-height:1.35">See every camera, press REC from here.</span></div>
+              <div style="padding:18px 0;border-bottom:1px solid #111;cursor:pointer"><b style="font-size:16px;font-weight:500;display:block">Test the connection</b><span style="font-size:14px;line-height:1.35">Ten seconds. How many cameras can this WiFi carry?</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1b MASTHEAD ============ -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:#111;color:#fff;font-weight:700;font-size:14px;padding:6px 10px">1b</span><span style="font-size:15px"><b>Masthead</b> — wordmark bleeds off the top; cameras and cuts are rounded stripes</span></div>
+
+      <div data-screen-label="1b Home" style="width:1200px;height:760px;background:#FFFFFF;color:#111;display:flex;flex-direction:column;overflow:hidden;position:relative">
+        <div style="position:relative;height:210px;overflow:hidden;border-bottom:1px solid #111">
+          <div style="position:absolute;left:24px;top:-38px;font-size:232px;font-weight:700;letter-spacing:-.06em;line-height:1;white-space:nowrap">camerasoup</div>
+          <div style="position:absolute;right:32px;top:24px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:15px;font-weight:700"><span>2026</span><span>free while it’s built</span></div>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:48px;padding:32px 32px 40px">
+          <div style="display:flex;flex-direction:column;gap:24px">
+            <h1 style="margin:0;font-size:44px;font-weight:700;letter-spacing:-.04em;line-height:1;text-wrap:pretty">A multicam studio in your browser.</h1>
+            <p style="margin:0;font-size:18px;line-height:1.35;font-weight:500;max-width:28em">Your Mac records. Your iPhones and iPads are the cameras. Nothing gets installed, and the footage never leaves your WiFi.</p>
+            <div style="display:flex;flex-direction:column;gap:0;font-size:15px;line-height:1.35">
+              <div style="display:grid;grid-template-columns:180px 1fr;padding:12px 0;border-top:1px solid #111"><b>Mac with Chrome</b><span>Runs the show and keeps the footage. A PC with Chrome, Edge, Brave or Arc works too.</span></div>
+              <div style="display:grid;grid-template-columns:180px 1fr;padding:12px 0;border-top:1px solid #111"><b>iPhone, iPad, Android</b><span>Each one is a camera. Scan the Mac’s code, name the angle, done.</span></div>
+              <div style="display:grid;grid-template-columns:180px 1fr;padding:12px 0;border-top:1px solid #111;border-bottom:1px solid #111"><b>iPad as remote</b><span>See every camera and press REC from across the room.</span></div>
+            </div>
+            <div style="margin-top:auto;display:flex;gap:12px;align-items:center">
+              <button style="font:inherit;font-size:18px;font-weight:700;background:#111;color:#fff;border:0;padding:18px 28px;border-radius:999px;cursor:pointer">Start the studio</button>
+              <button style="font:inherit;font-size:18px;font-weight:700;background:transparent;color:#111;border:2px solid #111;padding:16px 26px;border-radius:999px;cursor:pointer">Check my network</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px">
+            <div style="height:64px;width:96%;background:#1F6FE5;color:#fff;border-radius:0 32px 32px 0;display:flex;align-items:center;padding:0 24px;font-size:30px;font-weight:700;letter-spacing:-.03em">Record every angle</div>
+            <div style="height:64px;width:88%;background:#FFC61A;color:#111;border-radius:0 32px 32px 0;display:flex;align-items:center;padding:0 24px;font-size:30px;font-weight:700;letter-spacing:-.03em">Cut live with 1 2 3</div>
+            <div style="height:64px;width:80%;background:#FF3B2F;color:#fff;border-radius:0 32px 32px 0;display:flex;align-items:center;padding:0 24px;font-size:30px;font-weight:700;letter-spacing:-.03em">Fix cuts afterwards</div>
+            <div style="height:64px;width:72%;background:#6F3FB8;color:#fff;border-radius:0 32px 32px 0;display:flex;align-items:center;padding:0 24px;font-size:30px;font-weight:700;letter-spacing:-.03em">Render 4:5 + 9:16</div>
+            <div style="height:64px;width:64%;background:#22B8E0;color:#111;border-radius:0 32px 32px 0;display:flex;align-items:center;padding:0 24px;font-size:30px;font-weight:700;letter-spacing:-.03em">Footage stays home</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:16px;font-size:15px;font-weight:700"><span>Have a code from the Mac?</span><span style="font-size:20px;letter-spacing:.2em;border:2px solid #111;border-radius:999px;padding:8px 16px;color:#999">ABC123</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="1b Studio" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;flex-direction:column;overflow:hidden">
+        <header style="height:88px;display:flex;align-items:center;gap:24px;padding:0 24px 0 0;border-bottom:1px solid #2A2A2C;overflow:hidden">
+          <div style="font-size:72px;font-weight:700;letter-spacing:-.06em;line-height:1;margin:-10px 0 0 16px;white-space:nowrap">camerasoup</div>
+          <span style="font-size:15px;font-weight:500;color:#9A9A96;margin-left:auto">3 sources · 1–3 switches the live camera</span>
+          <span style="font-size:32px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums">00:00</span>
+          <button style="font:inherit;font-size:24px;font-weight:700;background:#FF3B2F;color:#fff;border:0;padding:0 36px;height:60px;border-radius:999px;cursor:pointer">● REC</button>
+        </header>
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="width:360px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;padding:24px 24px 24px 0">
+            <div style="height:88px;width:100%;background:#1F6FE5;color:#fff;border-radius:0 44px 44px 0;display:flex;align-items:center;gap:16px;padding:0 24px;cursor:pointer"><span style="font-size:48px;font-weight:700;letter-spacing:-.04em">1</span><span style="font-size:28px;font-weight:700;letter-spacing:-.03em">topdown</span><span style="margin-left:auto;font-size:13px;font-weight:700;background:#fff;color:#1F6FE5;padding:3px 8px;border-radius:999px">ON AIR</span></div>
+            <div style="height:88px;width:92%;background:#FFC61A;color:#111;border-radius:0 44px 44px 0;display:flex;align-items:center;gap:16px;padding:0 24px;cursor:pointer"><span style="font-size:48px;font-weight:700;letter-spacing:-.04em">2</span><span style="font-size:28px;font-weight:700;letter-spacing:-.03em">face</span></div>
+            <div style="height:88px;width:84%;background:#FF3B2F;color:#fff;border-radius:0 44px 44px 0;display:flex;align-items:center;gap:16px;padding:0 24px;cursor:pointer"><span style="font-size:48px;font-weight:700;letter-spacing:-.04em">3</span><span style="font-size:28px;font-weight:700;letter-spacing:-.03em">screen</span></div>
+            <div style="height:88px;width:76%;border:2px dashed #3A3A3C;border-left:0;border-radius:0 44px 44px 0;display:flex;align-items:center;padding:0 24px;font-size:20px;font-weight:700;color:#9A9A96;cursor:pointer">+ add a camera</div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-left:24px;font-size:14px;color:#9A9A96;line-height:1.4">
+              <span style="font-weight:700;color:#F2F1EC">Recordings</span>
+              <span><b style="color:#F2F1EC">20260821-162215</b> · 13 s · <u style="cursor:pointer">Edit</u></span>
+              <span><b style="color:#F2F1EC">20260821-160536</b> · 41 s · <u style="cursor:pointer">Edit</u></span>
+            </div>
+          </div>
+          <main style="flex:1;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:6px;padding:24px 24px 24px 0;min-height:0">
+            <div style="grid-row:1/3;position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);outline:4px solid #1F6FE5;outline-offset:-4px"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program · topdown</div></div>
+            <div style="position:relative;border-radius:24px;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px)"><span style="position:absolute;left:14px;top:14px;background:#FFC61A;color:#111;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">2 face</span></div>
+            <div style="position:relative;border-radius:24px;overflow:hidden;background:#000"><span style="position:absolute;left:14px;top:14px;background:#FF3B2F;color:#fff;font-size:18px;font-weight:700;padding:6px 14px;border-radius:999px">3 screen</span></div>
+          </main>
+        </div>
+      </div>
+
+      <div data-screen-label="1b Editor" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;flex-direction:column;overflow:hidden">
+        <header style="height:88px;display:flex;align-items:center;gap:24px;padding:0 24px;border-bottom:1px solid #2A2A2C">
+          <span style="font-size:15px;font-weight:700;cursor:pointer">← Sessions</span>
+          <span style="font-size:28px;font-weight:700;letter-spacing:-.03em">20260821-162215</span>
+          <span style="font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#9A9A96">0:04.12 <span style="color:#555">/ 0:13.02</span></span>
+          <span style="flex:1"></span>
+          <span style="font-size:15px;color:#9A9A96">audio <b style="color:#F2F1EC">face ▾</b></span>
+          <span style="font-size:15px;color:#9A9A96">preview <b style="color:#F2F1EC">4:5 ▾</b></span>
+          <button style="font:inherit;font-size:20px;font-weight:700;background:#F2F1EC;color:#111;border:0;padding:0 28px;height:56px;border-radius:999px;cursor:pointer">Render 4:5 + 9:16</button>
+        </header>
+        <div style="flex:1;display:flex;min-height:0;gap:24px;padding:24px 24px 24px 0">
+          <div style="width:360px;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+            <div style="flex:1;position:relative;border-radius:0 32px 32px 0;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);outline:4px solid #1F6FE5;outline-offset:-4px;cursor:pointer"><span style="position:absolute;left:0;top:0;background:#1F6FE5;color:#fff;font-size:22px;font-weight:700;padding:10px 20px;border-radius:0 0 22px 0">1 topdown</span><span style="position:absolute;right:16px;top:12px;font-size:20px">⟳</span></div>
+            <div style="flex:1;position:relative;border-radius:0 32px 32px 0;overflow:hidden;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);cursor:pointer"><span style="position:absolute;left:0;top:0;background:#FFC61A;color:#111;font-size:22px;font-weight:700;padding:10px 20px;border-radius:0 0 22px 0">2 face</span><span style="position:absolute;right:16px;top:12px;font-size:20px">⟳</span></div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center">
+            <div style="height:100%;aspect-ratio:4/5;background:#000;border-radius:24px;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program 1080×1350</div>
+          </div>
+        </div>
+        <div style="position:relative;display:flex;gap:4px;height:80px;padding:0 24px 24px;cursor:pointer">
+          <div style="width:31%;background:#1F6FE5;border-radius:0 40px 40px 0;display:flex;align-items:center;padding:0 20px;font-size:22px;font-weight:700;color:#fff">topdown</div>
+          <div style="width:30%;background:#FFC61A;border-radius:0 40px 40px 0;display:flex;align-items:center;padding:0 20px;font-size:22px;font-weight:700;color:#111">face</div>
+          <div style="width:39%;background:#1F6FE5;border-radius:0 40px 40px 0;display:flex;align-items:center;padding:0 20px;font-size:22px;font-weight:700;color:#fff">topdown</div>
+          <div style="position:absolute;top:-8px;bottom:16px;left:calc(24px + 32% * .967);width:3px;background:#fff"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:20px">
+        <div data-screen-label="1b Phone camera" style="width:390px;height:844px;background:#000;color:#fff;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:56px 0 12px;display:flex;flex-direction:column;gap:6px">
+            <div style="height:64px;width:80%;background:#1F6FE5;border-radius:0 32px 32px 0;display:flex;align-items:center;gap:14px;padding:0 20px"><span style="font-size:36px;font-weight:700;letter-spacing:-.04em">1</span><span style="font-size:26px;font-weight:700;letter-spacing:-.03em">topdown</span></div>
+          </div>
+          <div style="flex:1;margin:0 0 0 16px;border-radius:24px 0 0 24px;background:repeating-linear-gradient(45deg,#111 0 12px,#181818 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#777">rear camera</div>
+          <div style="padding:16px 16px 40px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-weight:700;color:#9A9A96">Rotate · Flip</span><span style="background:#FF3B2F;border-radius:999px;padding:14px 24px;font-size:24px;font-weight:700;letter-spacing:-.02em;animation:pulse 1.2s infinite">● 0:42</span></div>
+        </div>
+        <div data-screen-label="1b Phone join" style="width:390px;height:844px;background:#fff;color:#111;display:flex;flex-direction:column;overflow:hidden">
+          <div style="position:relative;height:110px;overflow:hidden;border-bottom:1px solid #111"><div style="position:absolute;left:12px;top:22px;font-size:104px;font-weight:700;letter-spacing:-.06em;line-height:1;white-space:nowrap">camerasoup</div></div>
+          <div style="padding:24px 20px;display:flex;flex-direction:column;gap:20px;flex:1">
+            <span style="font-size:15px;font-weight:700">Room K7Q2PM</span>
+            <h1 style="margin:0;font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1">What should this iPhone do?</h1>
+            <div style="display:flex;flex-direction:column;gap:6px;margin:0 0 0 -20px">
+              <div style="height:84px;width:100%;background:#1F6FE5;color:#fff;border-radius:0 42px 42px 0;display:flex;flex-direction:column;justify-content:center;padding:0 24px;cursor:pointer"><b style="font-size:24px;letter-spacing:-.03em">Be a camera</b><span style="font-size:13px">Point it, name the angle.</span></div>
+              <div style="height:84px;width:90%;background:#FFC61A;color:#111;border-radius:0 42px 42px 0;display:flex;flex-direction:column;justify-content:center;padding:0 24px;cursor:pointer"><b style="font-size:24px;letter-spacing:-.03em">Be the remote</b><span style="font-size:13px">Press REC from here.</span></div>
+              <div style="height:84px;width:80%;background:#22B8E0;color:#111;border-radius:0 42px 42px 0;display:flex;flex-direction:column;justify-content:center;padding:0 24px;cursor:pointer"><b style="font-size:24px;letter-spacing:-.03em">Test connection</b><span style="font-size:13px">Ten seconds.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1c GRID ============ -->
+    <div id="1c" style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:#111;color:#fff;font-weight:700;font-size:14px;padding:6px 10px">1c</span><span style="font-size:15px"><b>Grid</b> — strict Swiss grid, hairlines, giant number blocks; wordmark anchors the bottom</span></div>
+
+      <div data-screen-label="1c Home" style="width:1200px;height:760px;box-sizing:border-box;background:#F4F3EF;color:#111;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:auto 1fr auto;gap:0 24px;padding:24px 32px 0;overflow:hidden;position:relative">
+        <div style="grid-column:1/13;display:grid;grid-template-columns:subgrid;border-bottom:1px solid #111;padding-bottom:12px;font-size:13px;font-weight:700;letter-spacing:.02em">
+          <span style="grid-column:1/4">camerasoup.com</span><span style="grid-column:4/7">A multicam studio in your browser</span><span style="grid-column:7/10">Mac + iPhone + iPad</span><span style="grid-column:10/13;text-align:right">Free while it’s built</span>
+        </div>
+        <div style="grid-column:1/13;display:grid;grid-template-columns:subgrid;padding-top:32px">
+          <div style="grid-column:1/8;display:flex;flex-direction:column;gap:28px">
+            <h1 style="margin:0;font-size:60px;font-weight:700;letter-spacing:-.045em;line-height:.95;text-wrap:pretty">Your Mac records.<br>Your phones are the cameras.</h1>
+            <p style="margin:0;font-size:18px;line-height:1.35;font-weight:500;max-width:30em">Nothing gets installed, and the footage never leaves your WiFi. Cut live with the number keys, fix cuts afterwards, render 4:5 and 9:16 in seconds.</p>
+            <div style="display:flex;gap:12px"><button style="font:inherit;font-size:18px;font-weight:700;background:#111;color:#fff;border:0;padding:18px 28px;cursor:pointer">Start the studio</button><button style="font:inherit;font-size:18px;font-weight:700;background:transparent;color:#111;border:1px solid #111;padding:17px 27px;cursor:pointer">Check my network</button></div>
+          </div>
+          <div style="grid-column:8/13;display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid #111">
+            <div style="display:grid;grid-template-columns:72px 1fr;padding:14px 0;border-bottom:1px solid #111"><span style="width:56px;height:56px;background:#1F6FE5;color:#fff;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:-.04em">01</span><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.35"><b style="font-size:17px">Mac with Chrome</b><span>Runs the show and keeps the footage.</span></div></div>
+            <div style="display:grid;grid-template-columns:72px 1fr;padding:14px 0;border-bottom:1px solid #111"><span style="width:56px;height:56px;background:#FFC61A;color:#111;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:-.04em">02</span><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.35"><b style="font-size:17px">iPhone, iPad, Android</b><span>Each one is a camera. Scan the code, name the angle.</span></div></div>
+            <div style="display:grid;grid-template-columns:72px 1fr;padding:14px 0;border-bottom:1px solid #111"><span style="width:56px;height:56px;background:#FF3B2F;color:#fff;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:-.04em">03</span><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.35"><b style="font-size:17px">iPad as remote</b><span>See every camera and press REC from across the room.</span></div></div>
+            <div style="display:flex;align-items:center;gap:12px;padding-top:16px;font-size:14px;font-weight:700"><span>Code from the Mac</span><span style="font-size:20px;letter-spacing:.2em;border:1px solid #111;padding:8px 12px;color:#999;flex:1">ABC123</span><span style="border:1px solid #111;padding:12px 16px;opacity:.4">Join</span></div>
+          </div>
+        </div>
+        <div style="grid-column:1/13;height:150px;overflow:hidden;position:relative;border-top:1px solid #111"><div style="position:absolute;left:-6px;top:-14px;font-size:196px;font-weight:700;letter-spacing:-.06em;line-height:1;white-space:nowrap">camerasoup</div></div>
+      </div>
+
+      <div data-screen-label="1c Studio" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;flex-direction:column;overflow:hidden">
+        <header style="height:72px;display:grid;grid-template-columns:repeat(12,1fr);gap:24px;align-items:center;padding:0 24px;border-bottom:1px solid #2A2A2C;font-size:13px;font-weight:700;letter-spacing:.02em">
+          <span style="grid-column:1/3">camerasoup</span><span style="grid-column:3/5;color:#9A9A96">Studio · Movies/camerasoup</span><span style="grid-column:5/8;color:#9A9A96">3 sources · 1–3 switches the live camera</span><span style="grid-column:8/10;color:#9A9A96">Room K7Q2PM · <u style="color:#F2F1EC;cursor:pointer">+ camera</u></span>
+          <span style="grid-column:10/12;font-size:28px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;text-align:right">00:00:00</span>
+          <button style="grid-column:12/13;font:inherit;font-size:18px;font-weight:700;background:#FF3B2F;color:#fff;border:0;height:48px;cursor:pointer">● REC</button>
+        </header>
+        <main style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:1px;background:#2A2A2C;min-height:0">
+          <div style="grid-column:1/3;grid-row:1/3;position:relative;background:#0B0B0C;overflow:hidden"><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program · topdown</div><div style="position:absolute;left:0;top:0;width:144px;height:144px;background:#1F6FE5;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:10px 12px"><span style="font-size:88px;font-weight:700;letter-spacing:-.06em;line-height:.8">1</span><span style="font-size:18px;font-weight:700">topdown</span></div></div>
+          <div style="position:relative;background:#0B0B0C;overflow:hidden;cursor:pointer"><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);opacity:.4"></div><div style="position:absolute;left:0;top:0;width:96px;height:96px;background:#1F6FE5;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px"><span style="font-size:56px;font-weight:700;letter-spacing:-.06em;line-height:.8">1</span><span style="font-size:14px;font-weight:700">topdown</span></div><span style="position:absolute;right:12px;bottom:10px;font-size:13px;font-weight:700;color:#9A9A96">ON AIR</span></div>
+          <div style="position:relative;background:#0B0B0C;overflow:hidden;cursor:pointer"><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px)"></div><div style="position:absolute;left:0;top:0;width:96px;height:96px;background:#FFC61A;color:#111;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px"><span style="font-size:56px;font-weight:700;letter-spacing:-.06em;line-height:.8">2</span><span style="font-size:14px;font-weight:700">face</span></div></div>
+          <div style="position:relative;background:#000;overflow:hidden;cursor:pointer"><div style="position:absolute;left:0;top:0;width:96px;height:96px;background:#FF3B2F;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px"><span style="font-size:56px;font-weight:700;letter-spacing:-.06em;line-height:.8">3</span><span style="font-size:14px;font-weight:700">screen</span></div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">screen · letterboxed</div></div>
+          <div style="background:#0B0B0C;display:grid;grid-template-rows:1fr 1fr 1fr;gap:1px"><span style="display:flex;align-items:center;padding:0 16px;font-size:18px;font-weight:700;border-bottom:1px solid #2A2A2C;cursor:pointer">+ iPhone / iPad</span><span style="display:flex;align-items:center;padding:0 16px;font-size:18px;font-weight:700;border-bottom:1px solid #2A2A2C;cursor:pointer">+ this screen</span><span style="display:flex;align-items:center;padding:0 16px;font-size:18px;font-weight:700;cursor:pointer">+ this webcam</span></div>
+        </main>
+        <section style="height:96px;border-top:1px solid #2A2A2C;display:grid;grid-template-columns:repeat(12,1fr);gap:24px;align-items:center;padding:0 24px;font-size:13px;font-weight:700">
+          <span style="grid-column:1/3;color:#9A9A96">Recordings</span><span style="grid-column:3/6;font-size:20px;letter-spacing:-.02em">20260821-162215</span><span style="grid-column:6/10;color:#9A9A96">topdown · face · action · 13 s</span><span style="grid-column:10/12;color:#9A9A96">4:5 + 9:16 rendered</span><span style="grid-column:12/13;text-align:right;text-decoration:underline;cursor:pointer">Edit</span>
+        </section>
+      </div>
+
+      <div data-screen-label="1c Editor" style="width:1440px;height:900px;background:#0B0B0C;color:#F2F1EC;display:flex;flex-direction:column;overflow:hidden">
+        <header style="height:72px;display:grid;grid-template-columns:repeat(12,1fr);gap:24px;align-items:center;padding:0 24px;border-bottom:1px solid #2A2A2C;font-size:13px;font-weight:700">
+          <span style="grid-column:1/3;cursor:pointer">← Sessions</span><span style="grid-column:3/6;font-size:20px;letter-spacing:-.02em">20260821-162215</span><span style="grid-column:6/8;font-size:20px;letter-spacing:-.02em;font-variant-numeric:tabular-nums">0:04.12 <span style="color:#555">/ 0:13.02</span></span><span style="grid-column:8/9;color:#9A9A96">audio <b style="color:#F2F1EC">face ▾</b></span><span style="grid-column:9/10;color:#9A9A96">preview <b style="color:#F2F1EC">4:5 ▾</b></span>
+          <button style="grid-column:10/13;font:inherit;font-size:18px;font-weight:700;background:#F2F1EC;color:#111;border:0;height:48px;cursor:pointer">Render 4:5 + 9:16</button>
+        </header>
+        <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2A2A2C;min-height:0">
+          <div style="grid-column:1/4;background:#0B0B0C;display:flex;align-items:center;justify-content:center;padding:24px"><div style="height:100%;aspect-ratio:4/5;background:#000;display:flex;align-items:center;justify-content:center;font:13px ui-monospace,monospace;color:#777">program 1080×1350</div></div>
+          <div style="background:#2A2A2C;display:grid;grid-template-rows:1fr 1fr auto;gap:1px">
+            <div style="position:relative;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);cursor:pointer;outline:3px solid #1F6FE5;outline-offset:-3px"><div style="position:absolute;left:0;top:0;width:96px;height:96px;background:#1F6FE5;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px"><span style="font-size:56px;font-weight:700;letter-spacing:-.06em;line-height:.8">1</span><span style="font-size:14px;font-weight:700">topdown</span></div><span style="position:absolute;right:12px;top:10px;font-size:18px">⟳</span></div>
+            <div style="position:relative;background:repeating-linear-gradient(45deg,#161617 0 14px,#1C1C1E 14px 28px);cursor:pointer"><div style="position:absolute;left:0;top:0;width:96px;height:96px;background:#FFC61A;color:#111;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px"><span style="font-size:56px;font-weight:700;letter-spacing:-.06em;line-height:.8">2</span><span style="font-size:14px;font-weight:700">face</span></div><span style="position:absolute;right:12px;top:10px;font-size:18px">⟳</span></div>
+            <p style="margin:0;background:#0B0B0C;padding:14px 16px;font-size:13px;line-height:1.4;color:#9A9A96">1–2 or click cuts · Space plays · ←/→ steps · ⌫ removes the cut at the playhead</p>
+          </div>
+        </div>
+        <div style="position:relative;height:112px;border-top:1px solid #2A2A2C;display:flex;flex-direction:column">
+          <div style="height:24px;display:flex;justify-content:space-between;padding:0 24px;font-size:11px;font-weight:700;color:#9A9A96;align-items:center;font-variant-numeric:tabular-nums;border-bottom:1px solid #2A2A2C"><span>0:00</span><span>0:02</span><span>0:04</span><span>0:06</span><span>0:08</span><span>0:10</span><span>0:12</span></div>
+          <div style="flex:1;display:flex;cursor:pointer">
+            <div style="width:31%;background:#1F6FE5;color:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;font-size:20px;font-weight:700;letter-spacing:-.02em"><span style="font-size:40px;letter-spacing:-.06em">1</span>topdown</div>
+            <div style="width:30%;background:#FFC61A;color:#111;display:flex;align-items:center;gap:10px;padding:0 16px;font-size:20px;font-weight:700;letter-spacing:-.02em;border-left:1px solid #0B0B0C"><span style="font-size:40px;letter-spacing:-.06em">2</span>face</div>
+            <div style="width:39%;background:#1F6FE5;color:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;font-size:20px;font-weight:700;letter-spacing:-.02em;border-left:1px solid #0B0B0C"><span style="font-size:40px;letter-spacing:-.06em">1</span>topdown</div>
+          </div>
+          <div style="position:absolute;top:0;bottom:0;left:32%;width:2px;background:#fff"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:20px">
+        <div data-screen-label="1c Phone camera" style="width:390px;height:844px;background:#000;color:#fff;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:200px;background:#1F6FE5;display:flex;flex-direction:column;justify-content:space-between;padding:56px 16px 12px"><span style="font-size:120px;font-weight:700;letter-spacing:-.07em;line-height:.8">1</span><div style="display:flex;justify-content:space-between;font-size:20px;font-weight:700"><span>topdown</span><span style="font-size:13px;letter-spacing:.02em">camerasoup · K7Q2PM</span></div></div>
+          <div style="flex:1;background:repeating-linear-gradient(45deg,#111 0 12px,#181818 12px 24px);display:flex;align-items:center;justify-content:center;font:12px ui-monospace,monospace;color:#777;border-bottom:1px solid #2A2A2C">rear camera</div>
+          <div style="height:112px;display:grid;grid-template-columns:1fr 1fr 2fr;gap:1px;background:#2A2A2C"><span style="background:#000;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer">Rotate</span><span style="background:#000;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer">Flip</span><span style="background:#FF3B2F;display:flex;align-items:center;justify-content:center;gap:12px;font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;padding-bottom:12px"><span style="animation:pulse 1.2s infinite">●</span>REC 0:42</span></div>
+        </div>
+        <div data-screen-label="1c Phone join" style="width:390px;height:844px;background:#F4F3EF;color:#111;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:56px 20px 12px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-bottom:1px solid #111;margin:0 20px 0 20px;padding-left:0;padding-right:0"><span>camerasoup</span><span>Room K7Q2PM</span></div>
+          <div style="padding:24px 20px 0;display:flex;flex-direction:column;gap:20px">
+            <h1 style="margin:0;font-size:36px;font-weight:700;letter-spacing:-.045em;line-height:.95">What should this iPhone do?</h1>
+            <div style="display:flex;flex-direction:column;border-top:1px solid #111">
+              <div style="display:grid;grid-template-columns:72px 1fr;padding:16px 0;border-bottom:1px solid #111;cursor:pointer"><span style="width:56px;height:56px;background:#1F6FE5;color:#fff;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:-.04em">01</span><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.35"><b style="font-size:20px;letter-spacing:-.02em">Be a camera</b><span>Point it, name the angle.</span></div></div>
+              <div style="display:grid;grid-template-columns:72px 1fr;padding:16px 0;border-bottom:1px solid #111;cursor:pointer"><span style="width:56px;height:56px;background:#FFC61A;color:#111;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:-.04em">02</span><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.35"><b style="font-size:20px;letter-spacing:-.02em">Be the remote</b><span>Press REC from here.</span></div></div>
+              <div style="display:grid;grid-template-columns:72px 1fr;padding:16px 0;border-bottom:1px solid #111;cursor:pointer"><span style="width:56px;height:56px;border:1px solid #111;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:-.04em">03</span><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.35"><b style="font-size:20px;letter-spacing:-.02em">Test connection</b><span>Ten seconds.</span></div></div>
+            </div>
+          </div>
+          <div style="margin-top:auto;height:110px;overflow:hidden;position:relative;border-top:1px solid #111"><div style="position:absolute;left:-4px;top:-10px;font-size:140px;font-weight:700;letter-spacing:-.06em;line-height:1;white-space:nowrap">camerasoup</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

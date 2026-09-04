@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
+import SpinePage from '../components/Spine';
 import VerdictCard from '../components/VerdictCard';
 import { HostCaps, PhoneCaps, hostCapabilities } from '../lib/capabilities';
 import {
@@ -227,13 +228,11 @@ export default function Check() {
     liveMbps != null ? `${liveMbps.toFixed(0)} Mbps phone → Mac` : stage === 'testing' ? 'measuring…' : '';
 
   return (
-    <div className="check-page">
-      <header className="check-header">
-        <h1>camerasoup</h1>
-        <span>Will it work here?</span>
-      </header>
-      <p className="hint">
-        Run this on the Mac that will record. One phone sends test footage to it for a few
+    <SpinePage>
+      <span className="meta">Connection check</span>
+      <h1>Will it work here?</h1>
+      <p className="lede">
+        Run this on the computer that will record. One phone sends test footage to it for a few
         seconds, the way it will during a recording. Nothing leaves your network.
       </p>
       <div className="check-grid">
@@ -244,13 +243,21 @@ export default function Check() {
           <Step label="Speed" state={speedState} detail={speedDetail} />
         </section>
         <aside className="check-join">
-          {qr ? <img src={qr} alt={`QR code for ${joinUrl(code)}`} /> : <div style={{ width: 240, height: 240 }} />}
+          {qr ? (
+            <img src={qr} alt={`QR code for ${joinUrl(code)}`} />
+          ) : (
+            <div style={{ width: 260, height: 260 }} />
+          )}
           <div className="check-code">{code}</div>
           <div className="check-url">{joinUrl(code).replace(/^https?:\/\//, '')}</div>
           <p className="hint">Scan with the phone’s camera app, or type the address in Safari.</p>
         </aside>
       </div>
-      {signalError && <div className="verdict red">{signalError}</div>}
+      {signalError && (
+        <div className="edged verdict red">
+          <p className="hint">{signalError}</p>
+        </div>
+      )}
       {report && (
         <VerdictCard
           report={report}
@@ -267,7 +274,7 @@ export default function Check() {
       {stage === 'done' && report && (
         <p className="hint">Tap “Test again” on the phone to repeat with the same code.</p>
       )}
-    </div>
+    </SpinePage>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import SpinePage from '../components/Spine';
 import { CameraCaps, CaptureSource, CaptureState, openCamera } from '../lib/capture';
 
 const NAME_KEY = 'camerasoup.cameraName';
@@ -44,8 +45,8 @@ function NameGate({ name, onStart }: { name: string; onStart: (name: string) => 
   const [value, setValue] = useState(name);
   const [quality, setQuality] = useState(() => localStorage.getItem(QUALITY_KEY) ?? 'high');
   return (
-    <div className="camera-page">
-      <div className="center-card">
+    <SpinePage phone>
+      <div className="center-card" style={{ margin: 0, padding: 0, width: '100%' }}>
         <h1>camerasoup camera</h1>
         <p className="hint">Name this angle. The name sticks to this device.</p>
         <div className="chip-row">
@@ -85,7 +86,7 @@ function NameGate({ name, onStart }: { name: string; onStart: (name: string) => 
           goes to the background or the screen locks.
         </p>
       </div>
-    </div>
+    </SpinePage>
   );
 }
 
@@ -185,12 +186,13 @@ function LiveCamera({ name, onRename }: { name: string; onRename: () => void }) 
 
   const recording = state === 'recording';
   return (
-    <div className={`camera-page${recording ? ' recording' : ''}`}>
+    <div className="camera-page">
+      <div className="camera-main">
       <div className="camera-bar">
         <span className={`dot ${recording ? 'rec' : connected ? 'on' : ''}`} />
         <span className="name">{name}</span>
         <span className="spacer" />
-        <button disabled={recording} onClick={onRename}>
+        <button className="pill ghost" disabled={recording} onClick={onRename}>
           Rename
         </button>
         <button
@@ -268,6 +270,7 @@ function LiveCamera({ name, onRename }: { name: string; onRename: () => void }) 
               : connected
                 ? 'Ready'
                 : 'Offline'}
+      </div>
       </div>
     </div>
   );

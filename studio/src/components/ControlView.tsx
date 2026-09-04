@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { HubSnapshot, SnapshotCamera } from '../lib/rtc-protocol';
+import { colorForKey, textOn } from '../lib/theme';
 
-// The control surface: the mosaic, the REC button, the hotkeys. Rendered
-// identically from the hub's own state (the Mac's page) and from state
-// received over a data channel (an iPad). It never touches the hub directly
-// — every action goes through `on`, so the remote and local paths are the
-// same code.
+// The control surface: the camera spines, the mosaic, the REC button, the
+// hotkeys. Rendered identically from the hub's own state (the Mac's page)
+// and from state received over a data channel (an iPad). It never touches
+// the hub directly — every action goes through `on`, so the remote and local
+// paths are the same code.
 export interface ControlActions {
   cut(sourceId: string): void;
   start(): void;
@@ -14,35 +15,22 @@ export interface ControlActions {
   cameraControl(sourceId: string, c: { zoom?: number; torch?: boolean }): void;
 }
 
-const CELL_COLORS = ['#5b9dff', '#3dd68c', '#f5a623', '#e5484d', '#b98aff', '#4dd0e1'];
-
-function textOn(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
-  return lum > 150 ? '#0d0f12' : '#ffffff';
-}
-
-const GRID_CONFIGS: Array<[number, number]> = [
-  [3, 2],
-  [4, 2],
-  [3, 3],
-  [4, 3],
-  [5, 3],
-  [4, 4],
-];
-
 export default function ControlView({
   state,
   streams,
   actions,
+  meta,
   extras,
-  header,
+  onAdd,
+  footer,
 }: {
   state: HubSnapshot;
   streams: Record<string, MediaStream>;
   actions: ControlActions;
-  extras?: React.ReactNode; // the "add a source" cell, on the Mac only
-  header?: React.ReactNode; // role-specific header items
+  meta?: ReactNode;
+  extras?: ReactNode; // the "add a source" cell, on the Mac only
+  onAdd?: () => void; // the rail's + cell, on the Mac only
+  footer?: ReactNode; // the recordings strip, on the Mac only
 }) {
   const { cameras, recording, finalizing } = state;
   const live = !!recording && !finalizing;
@@ -51,7 +39,8 @@ export default function ControlView({
   // 1..9 drives the program: during a recording it cuts the show live.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT') return;
       const idx = parseInt(e.key, 10);
       if (idx >= 1 && idx <= order.length) actions.cut(order[idx - 1]);
     };
@@ -62,19 +51,22 @@ export default function ControlView({
 
   const programId = state.program ?? order[0] ?? null;
   const program = cameras.find((c) => c.id === programId) ?? null;
-  const extraCells = cameras.length + (extras ? 1 : 0);
-  const [cols, rows] = GRID_CONFIGS.find(([c, r]) => c * r - 4 >= extraCells) ?? [5, 4];
   const onlineCount = cameras.filter((c) => c.online).length;
+
+  // The program cell is one wide column spanning every row; the rest of the
+  // cameras and the add cell fill the columns beside it.
+  const slots = cameras.length + (extras ? 1 : 0);
+  const rows = slots <= 4 ? 2 : slots <= 6 ? 3 : 4;
+  const cols = Math.max(1, Math.ceil(slots / rows));
 
   const cell = (cam: SnapshotCamera, big: boolean) => (
     <Cell
       key={big ? '__program' : cam.id}
       cam={cam}
       big={big}
-      color={CELL_COLORS[(cam.keyNumber - 1) % CELL_COLORS.length]}
+      color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
       onAir={!big && programId === cam.id}
-      live={live && state.program === cam.id}
       canRemove={!recording && !big}
       onClick={() => actions.cut(cam.id)}
       onRemove={() => actions.remove(cam.id)}
@@ -83,43 +75,75 @@ export default function ControlView({
   );
 
   return (
-    <>
-      <header className="producer-header">
-        {header}
-        <span className="kind">
-          {onlineCount} source{onlineCount === 1 ? '' : 's'}
-        </span>
-        <span className="spacer" />
-        {live && cameras.length > 1 && (
-          <span className="kind">1–{cameras.length} switches the live camera</span>
+    <div className="rail-page">
+      <div className="rail">
+        <div className="rail-head">
+          <span>camerasoup</span>
+        </div>
+        {cameras.map((cam) => {
+          const color = colorForKey(cam.keyNumber);
+          return (
+            <div
+              key={cam.id}
+              className={`cam-spine${cam.online ? '' : ' offline'}`}
+              style={{ background: color }}
+              onClick={() => actions.cut(cam.id)}
+              title={cam.name}
+            >
+              <div className="cam-spine-label" style={{ color: textOn(color) }}>
+                <span className="num">{cam.keyNumber}</span>
+                &nbsp;{cam.name}
+              </div>
+            </div>
+          );
+        })}
+        {onAdd && (
+          <div className="rail-add" onClick={onAdd} title="Add a camera">
+            +
+          </div>
         )}
-        {recording && <RecTimer startedAt={recording.startedAt} />}
-        {finalizing ? (
-          <span className="kind">saving {finalizing}…</span>
-        ) : recording ? (
-          <button className="rec-button stop" onClick={actions.stop}>
-            ■ Stop
-          </button>
-        ) : (
-          <button className="rec-button" disabled={onlineCount === 0} onClick={actions.start}>
-            ● REC
-          </button>
-        )}
-      </header>
+      </div>
 
-      <main
-        className="mosaic"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-          gridAutoFlow: 'row dense',
-        }}
-      >
-        {program && cell(program, true)}
-        {cameras.map((c) => cell(c, false))}
-        {extras}
-      </main>
-    </>
+      <div className="rail-main">
+        <header className="studio-header">
+          {meta}
+          <span className="meta">
+            {onlineCount} source{onlineCount === 1 ? '' : 's'}
+          </span>
+          {live && cameras.length > 1 && (
+            <span className="meta">1–{cameras.length} switches the live camera</span>
+          )}
+          <span className="spacer" />
+          {recording && <RecTimer startedAt={recording.startedAt} />}
+          {finalizing ? (
+            <span className="meta">saving {finalizing}…</span>
+          ) : recording ? (
+            <button className="rec-button stop" onClick={actions.stop}>
+              ■ Stop
+            </button>
+          ) : (
+            <button className="rec-button" disabled={onlineCount === 0} onClick={actions.start}>
+              ● REC
+            </button>
+          )}
+        </header>
+
+        <main
+          className="mosaic"
+          style={{
+            gridTemplateColumns: `2fr repeat(${cols}, 1fr)`,
+            gridTemplateRows: `repeat(${rows}, 1fr)`,
+            gridAutoFlow: 'column',
+          }}
+        >
+          {program && cell(program, true)}
+          {cameras.map((c) => cell(c, false))}
+          {extras}
+        </main>
+
+        {footer}
+      </div>
+    </div>
   );
 }
 
@@ -132,7 +156,7 @@ export function RecTimer({ startedAt }: { startedAt: number }) {
   const s = Math.max(0, (Date.now() - startedAt) / 1000);
   return (
     <span className="rec-timer">
-      {Math.floor(s / 60)}:{String(Math.floor(s % 60)).padStart(2, '0')}
+      {String(Math.floor(s / 60)).padStart(2, '0')}:{String(Math.floor(s % 60)).padStart(2, '0')}
     </span>
   );
 }
@@ -143,7 +167,6 @@ function Cell({
   color,
   stream,
   onAir,
-  live,
   canRemove,
   onClick,
   onRemove,
@@ -154,7 +177,6 @@ function Cell({
   color: string;
   stream: MediaStream | null;
   onAir: boolean;
-  live: boolean;
   canRemove: boolean;
   onClick: () => void;
   onRemove: () => void;
@@ -170,20 +192,21 @@ function Cell({
   }, [stream]);
 
   const buffering = cam.pendingBytes > 4 * 1024 * 1024;
+  const className = [
+    'cell',
+    big && 'big',
+    onAir && 'onair',
+    // A camera fills its cell and is cropped a little; a screen is shown
+    // whole, because its edges carry content a crop would eat.
+    cam.kind === 'local-screen' && 'contain',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div
-      className={[
-        'cell',
-        big && 'big',
-        live && 'live',
-        onAir && 'onair',
-        // A camera fills its cell and is cropped a little; a screen is shown
-        // whole, because its edges carry content a crop would eat.
-        cam.kind === 'local-screen' && 'contain',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      style={big ? { gridColumn: '1 / 3', gridRow: '1 / 3' } : undefined}
+      className={className}
+      style={big ? { gridColumn: 1, outline: `4px solid ${color}`, outlineOffset: -4 } : undefined}
       onClick={onClick}
     >
       <video
@@ -193,14 +216,13 @@ function Cell({
         style={cam.rotation ? { transform: `rotate(${cam.rotation}deg)` } : undefined}
       />
       {!stream && <div className="nosignal">{cam.online ? 'connecting…' : 'offline'}</div>}
-      <div
-        className="sticky"
-        style={{ background: live ? 'var(--rec)' : color, color: live ? '#fff' : textOn(color) }}
-      >
-        <span className="num">{cam.keyNumber}</span>
-        <span className="nm">{cam.name}</span>
-      </div>
-      <span className={`cell-status dot ${cam.state === 'recording' ? 'rec' : cam.online ? 'on' : ''}`} />
+      {onAir && <div className="onair-caption mono">on air</div>}
+      <span className="tag" style={{ background: color, color: textOn(color) }}>
+        {cam.keyNumber} {cam.name}
+      </span>
+      <span
+        className={`cell-status dot ${cam.state === 'recording' ? 'rec' : cam.online ? 'on' : ''}`}
+      />
       {buffering && (
         <div className="cell-badge">buffering {(cam.pendingBytes / 1e6).toFixed(0)} MB</div>
       )}
@@ -219,7 +241,7 @@ function Cell({
       )}
       {cam.online && cam.caps?.zoom && (
         <div className="cell-controls" onClick={(e) => e.stopPropagation()}>
-          <span className="kind">×{(cam.zoom ?? cam.caps.zoom.value).toFixed(1)}</span>
+          <span>×{(cam.zoom ?? cam.caps.zoom.value).toFixed(1)}</span>
           <input
             type="range"
             min={cam.caps.zoom.min}
@@ -230,7 +252,7 @@ function Cell({
           />
           {cam.caps.torch && (
             <button
-              style={cam.torch ? { borderColor: 'var(--accent)' } : undefined}
+              style={cam.torch ? { color: color } : undefined}
               onClick={() => onControl({ torch: !cam.torch })}
             >
               Torch
