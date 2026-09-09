@@ -16,6 +16,7 @@ export interface Cut {
 export const FORMATS = {
   '4:5': { width: 1080, height: 1350 }, // Instagram/LinkedIn feed
   '9:16': { width: 1080, height: 1920 }, // YouTube Shorts / Reels
+  '16:9': { width: 1920, height: 1080 }, // YouTube, and anything with a lid
 } as const;
 
 export type FilmFormat = keyof typeof FORMATS;

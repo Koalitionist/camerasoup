@@ -163,6 +163,9 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     manifest.audioSource ?? sources[0]?.id ?? null
   );
   const [format, setFormat] = useState<FilmFormat>('4:5');
+  // Landscape is off by default: it is a third encode, and most takes here are
+  // going somewhere vertical.
+  const [outputs, setOutputs] = useState<FilmFormat[]>(['4:5', '9:16']);
   const [render, setRender] = useState<{
     state: 'idle' | 'running' | 'done' | 'error';
     progress: number;
@@ -446,6 +449,26 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
             ))}
           </select>
         </label>
+        <label className="field">
+          render
+          <span className="format-picks">
+            {(Object.keys(FORMATS) as FilmFormat[]).map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={outputs.includes(f) ? 'on' : undefined}
+                title={`${FORMATS[f].width}×${FORMATS[f].height}`}
+                onClick={() =>
+                  setOutputs((current) =>
+                    current.includes(f) ? current.filter((x) => x !== f) : [...current, f]
+                  )
+                }
+              >
+                {f}
+              </button>
+            ))}
+          </span>
+        </label>
         {render.state === 'running' ? (
           <span className="field">
             rendering {render.format ?? ''} {Math.round(render.progress * 100)}%
@@ -453,6 +476,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
         ) : (
           <button
             className="render-button"
+            disabled={!outputs.length}
             onClick={() => {
               setRender({ state: 'running', progress: 0 });
               if (store.kind === 'server') {
@@ -471,7 +495,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
                     props,
                     store,
                     sessionId: manifest.id,
-                    formats: ['4:5', '9:16'],
+                    formats: outputs,
                     onProgress: (p: RenderProgress) =>
                       setRender({ state: 'running', progress: p.progress, format: p.format }),
                   })
@@ -482,7 +506,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
                 );
             }}
           >
-            Render 4:5 + 9:16
+            {outputs.length ? `Render ${outputs.join(' + ')}` : 'Pick a format'}
           </button>
         )}
       </header>

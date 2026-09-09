@@ -1455,6 +1455,33 @@ button.big {
 /* The thumbnail's own grade. The gain is a multiply pass on canvas, which a
    <video> cannot do, so the preview overlays the same colour instead — close
    enough to judge by, while the program monitor and the render are exact. */
+/* Which formats get written. Toggles rather than a multi-select: there are
+   three, and you want to see all of them at once. */
+.format-picks {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.format-picks button {
+  border: 1px solid var(--dashed);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dim);
+  background: transparent;
+}
+
+.format-picks button.on {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.render-button:disabled {
+  opacity: 0.45;
+}
+
 .angle-tint {
   position: absolute;
   inset: 0;

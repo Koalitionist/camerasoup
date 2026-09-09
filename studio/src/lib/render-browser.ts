@@ -30,6 +30,7 @@ export interface RenderProgress {
 const FILE_NAMES: Record<FilmFormat, string> = {
   '4:5': 'out-4x5.mp4',
   '9:16': 'out-9x16.mp4',
+  '16:9': 'out-16x9.mp4',
 };
 
 const quarterTurns = (deg: number): Rotation => {
