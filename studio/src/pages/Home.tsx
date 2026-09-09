@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SpinePage from '../components/Spine';
+import { NO_AUTOFILL } from '../lib/fields';
 import { platformInfo } from '../lib/platform';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -57,6 +58,8 @@ export default function Home({ notice }: { notice?: string }) {
               </button>
               <input
                 className="code-input"
+                {...NO_AUTOFILL}
+                name="join-code"
                 value={code}
                 placeholder="ABC123"
                 aria-label="Join code from the computer"
@@ -79,6 +82,8 @@ export default function Home({ notice }: { notice?: string }) {
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <input
                   className="code-input"
+                  {...NO_AUTOFILL}
+                  name="join-code"
                   value={code}
                   placeholder="ABC123"
                   aria-label="Join code from the computer"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import SpinePage from '../components/Spine';
+import { NO_AUTOFILL } from '../lib/fields';
 import VerdictCard from '../components/VerdictCard';
 import { PhoneCaps, phoneCapabilities } from '../lib/capabilities';
 import { CameraClient, CameraEvents } from '../lib/camera-client';
@@ -130,6 +131,8 @@ function NameGate({ name, onStart }: { name: string; onStart: (n: string) => voi
       </div>
       <input
         className="name-input"
+        {...NO_AUTOFILL}
+        name="angle-name"
         value={value}
         placeholder="camera name"
         onChange={(e) => setValue(e.target.value)}

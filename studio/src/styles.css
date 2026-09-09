@@ -194,6 +194,11 @@ button.big:hover:not(:disabled) {
 .spine-page {
   min-height: 100%;
   display: flex;
+  /* The stripes enter from beyond the right edge, and without this the page
+     is briefly scrollable sideways to somewhere nobody wants to go. `clip`
+     rather than `hidden`, so it never becomes a scroll container itself; the
+     stripes' bleed stops exactly at this box, so nothing real is cut. */
+  overflow-x: clip;
   background: var(--light-bg);
   color: var(--light-ink);
 }
@@ -240,7 +245,11 @@ button.big:hover:not(:disabled) {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 440px;
+  /* The stripes used to hold a fixed 440 and the words took what was left,
+     which just above the breakpoint is 269px — enough to wrap the headline
+     every other word and squeeze a role's description into 87px. Both tracks
+     have a floor now, and the stripes are what gives way. */
+  grid-template-columns: minmax(440px, 1fr) minmax(240px, 440px);
   gap: 40px;
 }
 
@@ -334,6 +343,8 @@ button.big:hover:not(:disabled) {
 
 /* feature stripes hanging from the right edge */
 .stripes {
+  /* so the type can answer to the column it was given, not the window */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -353,7 +364,9 @@ button.big:hover:not(:disabled) {
   display: flex;
   align-items: center;
   padding: 0 28px;
-  font-size: 28px;
+  /* Full size when the column is full width, smaller as it narrows, so the
+     copy keeps fitting inside its own step instead of forcing it wider. */
+  font-size: clamp(17px, 6.4cqi, 28px);
   font-weight: 700;
   letter-spacing: -0.03em;
   border-radius: 32px 0 0 32px;
