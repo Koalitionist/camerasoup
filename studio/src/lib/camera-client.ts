@@ -418,24 +418,58 @@ export class CameraClient {
     }
     const torch = caps.torch as boolean | boolean[] | undefined;
     if (torch === true || (Array.isArray(torch) && torch.includes(true))) out.torch = true;
+    // A camera can hold its look only if it offers something other than
+    // continuous for both white balance and exposure.
+    const holds = (modes: unknown) =>
+      Array.isArray(modes) && modes.some((m) => m === 'manual' || m === 'single-shot');
+    if (holds(caps.whiteBalanceMode) && holds(caps.exposureMode)) out.lock = true;
     return Object.keys(out).length ? out : null;
   }
 
-  async applyCameraControl(control: { zoom?: number; torch?: boolean }) {
+  // The mode that freezes what the camera has already settled on. Prefer
+  // single-shot, which means "measure once and hold"; manual holds the current
+  // value too but is the more strictly interpreted of the two.
+  private lockMode(): string {
+    const caps = this.videoTrack?.getCapabilities?.() as Record<string, unknown> | undefined;
+    const modes = (caps?.whiteBalanceMode as string[] | undefined) ?? [];
+    return modes.includes('single-shot') ? 'single-shot' : 'manual';
+  }
+
+  async applyCameraControl(control: { zoom?: number; torch?: boolean; lock?: boolean }) {
     const track = this.videoTrack;
     if (!track?.applyConstraints) return;
     const advanced: Record<string, unknown> = {};
     if (typeof control.zoom === 'number') advanced.zoom = control.zoom;
     if (typeof control.torch === 'boolean') advanced.torch = control.torch;
+    if (typeof control.lock === 'boolean') {
+      const mode = control.lock ? this.lockMode() : 'continuous';
+      advanced.whiteBalanceMode = mode;
+      advanced.exposureMode = mode;
+    }
     if (!Object.keys(advanced).length) return;
     try {
       await track.applyConstraints({ advanced: [advanced] } as MediaTrackConstraints);
     } catch {
       // unsupported combination; the settings below say what applied
     }
-    const settings = (track.getSettings?.() ?? {}) as { zoom?: number; torch?: boolean };
+    const settings = (track.getSettings?.() ?? {}) as {
+      zoom?: number;
+      torch?: boolean;
+      whiteBalanceMode?: string;
+      exposureMode?: string;
+    };
     if (this.caps?.zoom && typeof settings.zoom === 'number') this.caps.zoom.value = settings.zoom;
-    sendJson(this.control, { type: 'status', zoom: settings.zoom, torch: settings.torch } satisfies CameraToHub);
+    // Report what the camera actually did, not what was asked of it.
+    const lock =
+      settings.whiteBalanceMode === undefined
+        ? undefined
+        : settings.whiteBalanceMode !== 'continuous' && settings.exposureMode !== 'continuous';
+    sendJson(this.control, {
+      type: 'status',
+      zoom: settings.zoom,
+      torch: settings.torch,
+      lock,
+    } satisfies CameraToHub);
     this.emit();
   }
 

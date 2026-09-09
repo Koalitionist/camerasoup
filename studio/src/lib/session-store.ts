@@ -1,6 +1,7 @@
 // Where the editor gets its sessions from. Two backends, one interface:
 // the hosted site reads the folder the user picked (File System Access),
 // the local app talks to the Node server. The editor itself doesn't care.
+import type { Grade } from '../../../video/src/types';
 import {
   Manifest,
   loadRootFolder,
@@ -18,6 +19,7 @@ export interface EditPatch {
   cuts?: { atFrame: number; sourceId: string }[];
   audioSource?: string | null;
   rotations?: Record<string, number>;
+  grades?: Record<string, Grade>;
 }
 
 export interface SessionStore {
@@ -119,6 +121,13 @@ class FolderStore implements SessionStore {
       for (const src of manifest.sources) {
         const r = patch.rotations[src.id];
         if (typeof r === 'number') src.rotation = r;
+      }
+    }
+    if (patch.grades) {
+      for (const src of manifest.sources) {
+        const g = patch.grades[src.id];
+        if (g) src.grade = g;
+        else delete src.grade;
       }
     }
     await writeJson(dir, 'session.json', manifest);

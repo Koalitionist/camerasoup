@@ -1452,6 +1452,63 @@ button.big {
   background: rgba(11, 11, 12, 0.7);
 }
 
+/* The thumbnail's own grade. The gain is a multiply pass on canvas, which a
+   <video> cannot do, so the preview overlays the same colour instead — close
+   enough to judge by, while the program monitor and the render are exact. */
+.angle-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.angle-grade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: none;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: rgba(11, 11, 12, 0.82);
+}
+
+.angle:hover .angle-grade {
+  display: flex;
+}
+
+.angle-grade label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.angle-grade input[type='range'] {
+  width: 76px;
+}
+
+.angle-grade button {
+  border-radius: 999px;
+  border: 1px solid var(--dashed);
+  color: var(--text);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.angle-grade button:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
 .edit-hint {
   font-size: 13px;
   line-height: 1.4;

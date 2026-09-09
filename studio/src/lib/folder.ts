@@ -7,6 +7,8 @@
 // therefore written as closed segments of a few megabytes and stitched into
 // one file at stop: a crash costs seconds, not the take.
 
+import type { Grade } from '../../../video/src/types';
+
 const DB_NAME = 'camerasoup';
 const STORE = 'handles';
 const ROOT_KEY = 'root';
@@ -104,6 +106,7 @@ export interface ManifestSource {
   name: string;
   kind: string;
   rotation: number;
+  grade?: Grade; // colour correction; the footage itself is never touched
   file: string | null;
   status: 'recording' | 'finalized' | 'failed';
   recordStart: number | null; // hub-clock ms when the recorder started

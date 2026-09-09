@@ -10,6 +10,10 @@ export const MEDIA_FRAME_BYTES = 16 * 1024;
 export interface CameraCaps {
   zoom?: { min: number; max: number; step: number; value: number };
   torch?: boolean;
+  // Whether this camera will hold its white balance and exposure. Half of what
+  // looks like a mismatch between angles is one camera changing its mind
+  // mid-take, and no amount of grading afterwards can undo that.
+  lock?: boolean;
 }
 
 export type SourceKind = 'remote' | 'local-webcam' | 'local-screen';
@@ -36,6 +40,7 @@ export type CameraToHub =
       pendingBytes?: number;
       zoom?: number;
       torch?: boolean;
+      lock?: boolean;
     };
 
 export type HubToCamera =
@@ -45,7 +50,7 @@ export type HubToCamera =
   | { type: 'record-stop'; sessionId: string }
   | { type: 'ingest-ack'; bytes: number }
   | { type: 'resume-ok'; bytesReceived: number }
-  | { type: 'camera-control'; zoom?: number; torch?: boolean }
+  | { type: 'camera-control'; zoom?: number; torch?: boolean; lock?: boolean }
   | { type: 'kicked' };
 
 // What a control view (the Mac's own screen or an iPad) sees.
@@ -64,6 +69,7 @@ export interface SnapshotCamera {
   caps: CameraCaps | null;
   zoom?: number;
   torch?: boolean;
+  lock?: boolean;
 }
 
 export interface SessionSummary {
@@ -88,7 +94,14 @@ export type HubToControl = { type: 'state'; state: HubSnapshot };
 export type ControlToHub =
   | { type: 'command'; cmd: 'record-start' | 'record-stop' }
   | { type: 'command'; cmd: 'cut' | 'remove'; sourceId: string }
-  | { type: 'command'; cmd: 'camera-control'; sourceId: string; zoom?: number; torch?: boolean }
+  | {
+      type: 'command';
+      cmd: 'camera-control';
+      sourceId: string;
+      zoom?: number;
+      torch?: boolean;
+      lock?: boolean;
+    }
   | { type: 'command'; cmd: 'auto'; on: boolean }
   | { type: 'command'; cmd: 'rename'; sourceId: string; name: string };
 

@@ -44,6 +44,7 @@ interface Source {
   caps: CameraCaps | null;
   zoom?: number;
   torch?: boolean;
+  lock?: boolean;
   online: boolean;
   state: SourceState;
   pendingBytes: number;
@@ -294,6 +295,7 @@ export class Hub {
         if (typeof m.pendingBytes === 'number') src.pendingBytes = m.pendingBytes;
         if (typeof m.zoom === 'number') src.zoom = m.zoom;
         if (typeof m.torch === 'boolean') src.torch = m.torch;
+        if (typeof m.lock === 'boolean') src.lock = m.lock;
         if (m.interrupted) {
           src.state = 'interrupted';
           this.showToast(`${src.name}: ${m.interrupted}`);
@@ -718,11 +720,12 @@ export class Hub {
     this.emit();
   }
 
-  cameraControl(id: string, control: { zoom?: number; torch?: boolean }) {
+  cameraControl(id: string, control: { zoom?: number; torch?: boolean; lock?: boolean }) {
     const src = this.sources.get(id);
     if (!src?.control) return;
     if (typeof control.zoom === 'number') src.zoom = control.zoom;
     if (typeof control.torch === 'boolean') src.torch = control.torch;
+    if (typeof control.lock === 'boolean') src.lock = control.lock;
     sendJson(src.control, { type: 'camera-control', ...control } satisfies HubToCamera);
     this.emit();
   }
@@ -771,7 +774,7 @@ export class Hub {
         this.removeSource(m.sourceId);
         break;
       case 'camera-control':
-        this.cameraControl(m.sourceId, { zoom: m.zoom, torch: m.torch });
+        this.cameraControl(m.sourceId, { zoom: m.zoom, torch: m.torch, lock: m.lock });
         break;
       case 'auto':
         this.setAuto(m.on);
@@ -814,6 +817,7 @@ export class Hub {
       caps: s.caps,
       zoom: s.zoom,
       torch: s.torch,
+      lock: s.lock,
     }));
     return {
       code: this.code,

@@ -19,7 +19,7 @@ import {
   QUALITY_HIGH,
   Rotation,
 } from 'mediabunny';
-import { FilmFormat, FilmProps, FORMATS, buildTimeline } from '../../../video/src/types';
+import { FilmFormat, FilmProps, FORMATS, buildTimeline, drawGraded } from '../../../video/src/types';
 import { SessionStore } from './session-store';
 
 export interface RenderProgress {
@@ -87,13 +87,19 @@ export async function renderSession(opts: {
       }
       if (!sinks.size) throw new Error('none of the angles could be decoded');
 
-      const drawCover = (frame: { canvas: HTMLCanvasElement | OffscreenCanvas }) => {
+      // The grade is re-applied here rather than baked into the recording,
+      // so it is the same data the editor previewed and can be changed by
+      // re-rendering. Same canvas API at both ends, so they cannot drift.
+      const grades = new Map(props.sources.map((s) => [s.id, s.grade]));
+      const drawCover = (frame: { canvas: HTMLCanvasElement | OffscreenCanvas }, sourceId: string) => {
         const src = frame.canvas;
         if (!src.width || !src.height) return;
         const scale = Math.max(width / src.width, height / src.height);
         const w = src.width * scale;
         const h = src.height * scale;
-        ctx.drawImage(src, (width - w) / 2, (height - h) / 2, w, h);
+        drawGraded(ctx, width, height, grades.get(sourceId), () =>
+          ctx.drawImage(src, (width - w) / 2, (height - h) / 2, w, h)
+        );
       };
 
       const target = new BufferTarget();
@@ -147,7 +153,7 @@ export async function renderSession(opts: {
         for (let i = 0; i < segment.len; i++) timestamps.push((segment.start + i + trim) / fps);
         let i = 0;
         for await (const frame of sink.canvasesAtTimestamps(timestamps)) {
-          if (frame) drawCover(frame);
+          if (frame) drawCover(frame, segment.sourceId);
           // A null frame (past the end of that angle) holds the last picture.
           await videoSource.add((segment.start + i) / fps, 1 / fps);
           i++;

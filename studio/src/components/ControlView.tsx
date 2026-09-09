@@ -12,7 +12,7 @@ export interface ControlActions {
   start(): void;
   stop(): void;
   remove(sourceId: string): void;
-  cameraControl(sourceId: string, c: { zoom?: number; torch?: boolean }): void;
+  cameraControl(sourceId: string, c: { zoom?: number; torch?: boolean; lock?: boolean }): void;
   setAuto(on: boolean): void;
   rename(sourceId: string, name: string): void;
 }
@@ -257,7 +257,7 @@ function Cell({
   canRemove: boolean;
   onClick: () => void;
   onRemove: () => void;
-  onControl: (c: { zoom?: number; torch?: boolean }) => void;
+  onControl: (c: { zoom?: number; torch?: boolean; lock?: boolean }) => void;
   renaming: boolean;
   onRenameStart: () => void;
   onRenameEnd: (name?: string) => void;
@@ -356,23 +356,36 @@ function Cell({
           ✕
         </button>
       )}
-      {cam.online && cam.caps?.zoom && (
+      {cam.online && (cam.caps?.zoom || cam.caps?.torch || cam.caps?.lock) && (
         <div className="cell-controls" onClick={(e) => e.stopPropagation()}>
-          <span>×{(cam.zoom ?? cam.caps.zoom.value).toFixed(1)}</span>
-          <input
-            type="range"
-            min={cam.caps.zoom.min}
-            max={cam.caps.zoom.max}
-            step={cam.caps.zoom.step}
-            value={cam.zoom ?? cam.caps.zoom.value}
-            onChange={(e) => onControl({ zoom: Number(e.target.value) })}
-          />
+          {cam.caps.zoom && (
+            <>
+              <span>×{(cam.zoom ?? cam.caps.zoom.value).toFixed(1)}</span>
+              <input
+                type="range"
+                min={cam.caps.zoom.min}
+                max={cam.caps.zoom.max}
+                step={cam.caps.zoom.step}
+                value={cam.zoom ?? cam.caps.zoom.value}
+                onChange={(e) => onControl({ zoom: Number(e.target.value) })}
+              />
+            </>
+          )}
           {cam.caps.torch && (
             <button
               style={cam.torch ? { color: color } : undefined}
               onClick={() => onControl({ torch: !cam.torch })}
             >
               Torch
+            </button>
+          )}
+          {cam.caps.lock && (
+            <button
+              style={cam.lock ? { color: color } : undefined}
+              title="Hold this camera's white balance and exposure, so it cannot re-decide mid-take"
+              onClick={() => onControl({ lock: !cam.lock })}
+            >
+              {cam.lock ? 'Locked' : 'Lock'}
             </button>
           )}
         </div>

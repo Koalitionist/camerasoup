@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Grade } from '../../../video/src/types';
 import {
   buildTimeline,
+  NEUTRAL,
+  drawGraded,
+  isNeutral,
+  gradeFilter,
+  gradeTint,
+  matchGrade,
+  statsFrom,
   Cut,
   EditSource,
   FilmFormat,
@@ -109,6 +117,9 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   const [rotations, setRotations] = useState<Record<string, number>>(() =>
     Object.fromEntries(manifest.sources.map((s) => [s.id, s.rotation ?? 0]))
   );
+  const [grades, setGrades] = useState<Record<string, Grade>>(() =>
+    Object.fromEntries(manifest.sources.filter((s) => s.grade).map((s) => [s.id, s.grade!]))
+  );
 
   // Playable files: a path on the local server, a blob URL from the folder.
   const usable = useMemo(
@@ -142,8 +153,9 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               recordStart: s.recordStart!,
               duration: s.duration!,
               rotation: rotations[s.id] ?? 0,
+              grade: grades[s.id],
             })),
-    [usable, urls, rotations]
+    [usable, urls, rotations, grades]
   );
 
   const [cuts, setCuts] = useState<Cut[]>(manifest.cuts ?? []);
@@ -247,10 +259,10 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
       return;
     }
     const t = window.setTimeout(() => {
-      void store.saveEdit(manifest.id, { cuts, audioSource: audioSourceId, rotations });
+      void store.saveEdit(manifest.id, { cuts, audioSource: audioSourceId, rotations, grades });
     }, 600);
     return () => window.clearTimeout(t);
-  }, [cuts, audioSourceId, rotations, manifest.id, store]);
+  }, [cuts, audioSourceId, rotations, grades, manifest.id, store]);
 
   // render progress over the hub socket (local app only; the browser
   // renderer reports its own progress directly)
@@ -365,6 +377,31 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   }
 
   const colorOf = (id: string) => colorForKey(sources.findIndex((s) => s.id === id) + 1);
+  // Match every other angle onto this one, using the frames already on screen.
+  const matchTo = useCallback(
+    (referenceId: string) => {
+      const el = videoEls.current.get(referenceId);
+      // A <video> still buffering has no frame to measure yet.
+      const reference = el ? statsFrom(el) : null;
+      if (!reference) return;
+      setGrades((current) => {
+        const next = { ...current };
+        // The reference defines the look, so it wears none of the correction.
+        delete next[referenceId];
+        for (const [id, angle] of videoEls.current) {
+          if (id === referenceId) continue;
+          // drawImage ignores CSS filters, so this measures the angle as it
+          // was shot rather than as it is currently graded — which is what
+          // makes matching repeatable instead of compounding.
+          const before = statsFrom(angle);
+          if (before) next[id] = matchGrade(before, reference);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   const activeId = activeSourceAt(frame);
   const activeSource = sources.find((s) => s.id === activeId) ?? null;
   const audioSource = sources.find((s) => s.id === audioSourceId) ?? sources[0];
@@ -507,6 +544,17 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               onRotate={() =>
                 setRotations((r) => ({ ...r, [s.id]: ((r[s.id] ?? 0) + 90) % 360 }))
               }
+              grade={grades[s.id]}
+              onGrade={(g) =>
+                setGrades((all) => {
+                  const next = { ...all };
+                  // A neutral grade is the absence of one, not a value to store.
+                  if (g && !isNeutral(g)) next[s.id] = g;
+                  else delete next[s.id];
+                  return next;
+                })
+              }
+              onMatchTo={() => matchTo(s.id)}
               onVideoEl={(el) => {
                 if (el) videoEls.current.set(s.id, el);
                 else videoEls.current.delete(s.id);
@@ -584,12 +632,16 @@ function ProgramCanvas({
       const contentW = quarter ? v.videoHeight : v.videoWidth;
       const contentH = quarter ? v.videoWidth : v.videoHeight;
       const scale = Math.max(canvas.width / contentW, canvas.height / contentH);
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rot * Math.PI) / 180);
-      ctx.scale(scale, scale);
-      ctx.drawImage(v, -v.videoWidth / 2, -v.videoHeight / 2, v.videoWidth, v.videoHeight);
-      ctx.restore();
+      // The renderer draws through the identical helper, so what the monitor
+      // shows is what the file gets.
+      drawGraded(ctx, canvas.width, canvas.height, active!.grade, () => {
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((rot * Math.PI) / 180);
+        ctx.scale(scale, scale);
+        ctx.drawImage(v, -v.videoWidth / 2, -v.videoHeight / 2, v.videoWidth, v.videoHeight);
+        ctx.restore();
+      });
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
@@ -650,6 +702,9 @@ function AngleTile({
   onCut,
   onRotate,
   onVideoEl,
+  grade,
+  onGrade,
+  onMatchTo,
 }: {
   source: EditSource;
   index: number;
@@ -662,6 +717,9 @@ function AngleTile({
   onCut: () => void;
   onRotate: () => void;
   onVideoEl: (el: HTMLVideoElement | null) => void;
+  grade?: Grade;
+  onGrade: (grade: Grade | null) => void;
+  onMatchTo: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -695,8 +753,14 @@ function AngleTile({
         muted
         playsInline
         preload="auto"
-        style={source.rotation ? { transform: `rotate(${source.rotation}deg)` } : undefined}
+        style={{
+          ...(source.rotation ? { transform: `rotate(${source.rotation}deg)` } : {}),
+          // Preview only: the program monitor and the render do this properly
+          // on canvas. This keeps the thumbnail honest about its own grade.
+          ...(isNeutral(grade) ? {} : { filter: gradeFilter(grade!) }),
+        }}
       />
+      {!isNeutral(grade) && <div className="angle-tint" style={{ background: gradeTint(grade!) ?? undefined }} />}
       <span className="tag" style={{ background: color, color: textOn(color) }}>
         {index + 1} {source.id}
       </span>
@@ -710,8 +774,57 @@ function AngleTile({
       >
         ⟳
       </button>
+      <div className="angle-grade" onClick={(e) => e.stopPropagation()}>
+        <button title="Match every other angle to this one" onClick={onMatchTo}>
+          Match to this
+        </button>
+        {GRADE_SLIDERS.map(({ key, label, min, max }) => (
+          <label key={key}>
+            <span>{label}</span>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={0.01}
+              value={(grade ?? NEUTRAL)[key]}
+              onChange={(e) =>
+                onGrade({ ...(grade ?? NEUTRAL), [key]: Number(e.target.value) })
+              }
+            />
+          </label>
+        ))}
+        <label>
+          <span>Warmth</span>
+          <input
+            type="range"
+            min={-0.5}
+            max={0.5}
+            step={0.01}
+            value={warmthOf(grade ?? NEUTRAL)}
+            onChange={(e) => onGrade(withWarmth(grade ?? NEUTRAL, Number(e.target.value)))}
+          />
+        </label>
+        {!isNeutral(grade) && <button onClick={() => onGrade(null)}>Reset</button>}
+      </div>
     </div>
   );
+}
+
+const GRADE_SLIDERS = [
+  { key: 'brightness', label: 'Exposure', min: 0.4, max: 2.5 },
+  { key: 'contrast', label: 'Contrast', min: 0.5, max: 2 },
+  { key: 'saturation', label: 'Saturation', min: 0, max: 2 },
+] as const;
+
+// Warmth is the red/blue half of the gain, shown as one control. An auto-match
+// can set a gain no single slider describes, so this reads back what it can
+// and leaves green where the match put it.
+function warmthOf(grade: Grade): number {
+  return (grade.gain[0] - grade.gain[2]) / 2;
+}
+
+function withWarmth(grade: Grade, warmth: number): Grade {
+  return { ...grade, gain: [1 + warmth, grade.gain[1], 1 - warmth] };
 }
 
 function Timeline({
