@@ -99,11 +99,16 @@ export default function Home({ notice }: { notice?: string }) {
         </div>
 
         <div className="stripes">
-          {STRIPES.map((s) => (
+          {STRIPES.map((s, i) => (
             <div
               key={s.text}
               className="stripe"
-              style={{ background: s.bg, color: s.fg, width: s.width }}
+              style={{
+                background: s.bg,
+                color: s.fg,
+                width: s.width,
+                animationDelay: `${i * 80}ms`,
+              }}
             >
               {s.text}
             </div>

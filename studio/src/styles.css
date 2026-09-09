@@ -352,6 +352,50 @@ button.big:hover:not(:disabled) {
   }
 }
 
+/* ---- motion -------------------------------------------------------------
+   The stripes already run off the right edge, so that is where they come
+   from: each one slides in behind the one above it, widest first. The
+   wordmark arrives a letter at a time, in reading order. Both are entrances
+   only — nothing here loops, and nothing moves once the page has settled. */
+
+.stripe {
+  animation: stripe-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes stripe-in {
+  from {
+    transform: translateX(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.wordmark span {
+  display: inline-block;
+  animation: letter-in 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes letter-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.22em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* An entrance is decoration. Anyone who has asked for less movement gets the
+   finished page instead of the arrival. */
+@media (prefers-reduced-motion: reduce) {
+  .stripe,
+  .wordmark span {
+    animation: none;
+  }
+}
+
 /* ---- panels, notices, verdicts ------------------------------------------ */
 
 .panel {
