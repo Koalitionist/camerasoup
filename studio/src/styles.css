@@ -596,6 +596,18 @@ button.big:hover:not(:disabled) {
   flex: 1;
 }
 
+/* Auto-switch: a ghost pill that fills in while it is driving the program. */
+.auto-toggle.on,
+.auto-toggle.on:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.auto-toggle:disabled {
+  opacity: 0.5;
+}
+
 .rec-timer {
   font-size: 36px;
   font-weight: 700;

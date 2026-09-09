@@ -2,6 +2,7 @@
 // every camera's footage over WebRTC and writes it into the session folder,
 // records the Mac's own screen/webcam, keeps the clock, logs live cuts, and
 // serves the same picture to any control view (its own page or an iPad).
+import { AutoSwitcher } from './autoswitch';
 import { CaptureSource } from './capture';
 import {
   Manifest,
@@ -15,6 +16,7 @@ import {
 import { SignalledPeer, iceServers } from './peer';
 import { Signal, SignalData, joinUrl } from './signal';
 import {
+  AutoStatus,
   CameraCaps,
   CameraToHub,
   ControlToHub,
@@ -107,6 +109,8 @@ export class Hub {
   private recording: Recording | null = null;
   private finalizingId: string | null = null;
   private program: string | null = null;
+  private autoSwitcher: AutoSwitcher | null = null;
+  private autoStatus: AutoStatus = 'off';
   private sessions: Manifest[] = [];
   private toast: string | null = null;
   private toastTimer: number | undefined;
@@ -508,14 +512,49 @@ export class Hub {
     this.emit();
   }
 
-  cut(sourceId: string) {
+  cut(sourceId: string, origin: 'manual' | 'auto' = 'manual', atMs = Date.now()) {
     const src = this.sources.get(sourceId);
     if (!src) return;
-    if (this.recording && !this.recording.stopping && this.recording.ids.includes(sourceId)) {
-      this.recording.liveCuts.push({ atMs: Date.now(), sourceId });
+    if (origin === 'manual' && this.autoStatus === 'on') {
+      this.autoSwitcher?.noteManualCut();
+      this.showToast('Auto-switch paused for 10s');
+    }
+    const rec = this.recording;
+    if (rec && !rec.stopping && rec.ids.includes(sourceId)) {
+      // An auto cut is dated where the head started turning, which is earlier
+      // than now. Clamp it inside the take and after the cut before it so the
+      // timeline math still sees an ordered list.
+      const floor = rec.liveCuts.length ? rec.liveCuts[rec.liveCuts.length - 1].atMs : rec.startedAt;
+      rec.liveCuts.push({ atMs: Math.min(Date.now(), Math.max(atMs, floor)), sourceId });
     }
     this.program = sourceId;
     this.emit();
+  }
+
+  // Auto-switching reads which camera the subject's face is square to and
+  // cuts to it, so turning your head is the switch. Off by default; the face
+  // detector is fetched the first time it is turned on.
+  setAuto(on: boolean) {
+    if (!on) {
+      this.autoSwitcher?.disable();
+      return;
+    }
+    this.autoSwitcher ??= new AutoSwitcher(
+      () =>
+        [...this.sources.values()]
+          // A shared screen has no head to read, and cutting to one because a
+          // face turned up inside it is never what was meant.
+          .filter((s) => s.online && s.kind !== 'local-screen' && s.state !== 'interrupted')
+          .map((s) => ({ id: s.id, stream: s.stream })),
+      () => this.program,
+      (sourceId, atMs) => this.cut(sourceId, 'auto', atMs),
+      (status, error) => {
+        this.autoStatus = status;
+        if (error) this.showToast(`Auto-switch unavailable: ${error}`);
+        else this.emit();
+      }
+    );
+    void this.autoSwitcher.enable();
   }
 
   stopRecording() {
@@ -715,6 +754,9 @@ export class Hub {
       case 'camera-control':
         this.cameraControl(m.sourceId, { zoom: m.zoom, torch: m.torch });
         break;
+      case 'auto':
+        this.setAuto(m.on);
+        break;
     }
   }
 
@@ -761,6 +803,7 @@ export class Hub {
         : null,
       finalizing: this.finalizingId,
       program: this.program,
+      auto: this.autoStatus,
       sessions: this.sessions.slice(0, 30).map((m) => ({
         id: m.id,
         sources: m.sources.map((s) => ({
@@ -784,6 +827,7 @@ export class Hub {
   }
 
   dispose() {
+    this.autoSwitcher?.disable();
     for (const src of [...this.sources.values()]) this.dropSource(src);
     for (const view of this.controls.values()) view.peer.close();
     this.controls.clear();

@@ -123,6 +123,7 @@ export default function Studio() {
     stop: () => hubRef.current?.stopRecording(),
     remove: (id) => hubRef.current?.removeSource(id),
     cameraControl: (id, c) => hubRef.current?.cameraControl(id, c),
+    setAuto: (on) => hubRef.current?.setAuto(on),
   };
 
   const addScreen = async () => {

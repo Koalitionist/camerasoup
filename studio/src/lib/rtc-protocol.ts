@@ -14,6 +14,8 @@ export interface CameraCaps {
 
 export type SourceKind = 'remote' | 'local-webcam' | 'local-screen';
 export type SourceState = 'live' | 'recording' | 'flushing' | 'interrupted';
+// Auto-switching: 'loading' covers the one-time fetch of the face detector.
+export type AutoStatus = 'off' | 'loading' | 'on' | 'error';
 
 export type CameraToHub =
   | { type: 'hello'; name: string; kind: 'remote'; rotation: number; caps: CameraCaps | null }
@@ -77,6 +79,7 @@ export interface HubSnapshot {
   recording: { sessionId: string; startedAt: number } | null;
   finalizing: string | null;
   program: string | null;
+  auto: AutoStatus;
   sessions: SessionSummary[];
   toast: string | null;
 }
@@ -85,7 +88,8 @@ export type HubToControl = { type: 'state'; state: HubSnapshot };
 export type ControlToHub =
   | { type: 'command'; cmd: 'record-start' | 'record-stop' }
   | { type: 'command'; cmd: 'cut' | 'remove'; sourceId: string }
-  | { type: 'command'; cmd: 'camera-control'; sourceId: string; zoom?: number; torch?: boolean };
+  | { type: 'command'; cmd: 'camera-control'; sourceId: string; zoom?: number; torch?: boolean }
+  | { type: 'command'; cmd: 'auto'; on: boolean };
 
 export function sendJson(dc: RTCDataChannel | null, msg: unknown) {
   if (dc && dc.readyState === 'open') dc.send(JSON.stringify(msg));

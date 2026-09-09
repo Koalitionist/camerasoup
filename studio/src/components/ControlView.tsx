@@ -13,6 +13,7 @@ export interface ControlActions {
   stop(): void;
   remove(sourceId: string): void;
   cameraControl(sourceId: string, c: { zoom?: number; torch?: boolean }): void;
+  setAuto(on: boolean): void;
 }
 
 export default function ControlView({
@@ -111,9 +112,23 @@ export default function ControlView({
             {onlineCount} source{onlineCount === 1 ? '' : 's'}
           </span>
           {live && cameras.length > 1 && (
-            <span className="meta">1–{cameras.length} switches the live camera</span>
+            <span className="meta">
+              {state.auto === 'on'
+                ? 'auto — the camera you face goes on air'
+                : `1–${cameras.length} switches the live camera`}
+            </span>
           )}
           <span className="spacer" />
+          {cameras.length > 1 && (
+            <button
+              className={`pill ghost small auto-toggle${state.auto === 'on' ? ' on' : ''}`}
+              disabled={state.auto === 'loading'}
+              title="Cut to whichever camera the subject is facing. A manual switch pauses it for ten seconds."
+              onClick={() => actions.setAuto(state.auto !== 'on')}
+            >
+              {state.auto === 'loading' ? 'auto…' : 'auto'}
+            </button>
+          )}
           {recording && <RecTimer startedAt={recording.startedAt} />}
           {finalizing ? (
             <span className="meta">saving {finalizing}…</span>

@@ -83,6 +83,7 @@ export default function RemoteControl({ code, onLeave }: { code: string; onLeave
     stop: () => send({ type: 'command', cmd: 'record-stop' }),
     remove: (sourceId) => send({ type: 'command', cmd: 'remove', sourceId }),
     cameraControl: (sourceId, c) => send({ type: 'command', cmd: 'camera-control', sourceId, ...c }),
+    setAuto: (on) => send({ type: 'command', cmd: 'auto', on }),
   };
 
   if (error) {
