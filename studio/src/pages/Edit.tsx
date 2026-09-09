@@ -736,13 +736,25 @@ function Timeline({
   onDragStart: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ type: 'scrub' } | { type: 'cut'; atFrame: number } | null>(null);
+  const drag = useRef<
+    | { type: 'scrub' }
+    | { type: 'playhead'; startX: number; startFrame: number }
+    | { type: 'cut'; atFrame: number }
+    | null
+  >(null);
   const duration = timeline.durationInFrames;
+
+  const clampFrame = (f: number) => Math.max(0, Math.min(duration - 1, Math.round(f)));
 
   const frameAt = (clientX: number) => {
     const r = ref.current!.getBoundingClientRect();
-    return Math.max(0, Math.min(duration - 1, Math.round(((clientX - r.left) / r.width) * duration)));
+    return clampFrame(((clientX - r.left) / r.width) * duration);
   };
+
+  // Grabbing the playhead or its clock drags from where you took hold, rather
+  // than jumping the program to the pointer: the clock is clamped away from
+  // the playhead near either end, so an absolute seek there would leap.
+  const framesPerPixel = () => duration / (ref.current?.getBoundingClientRect().width || 1);
 
   const explicitCuts = [...cuts].sort((a, b) => a.atFrame - b.atFrame);
 
@@ -758,6 +770,8 @@ function Timeline({
         if (handle) {
           drag.current = { type: 'cut', atFrame: Number(handle.dataset.frame) };
           onDragStart();
+        } else if (target.closest('.playhead-grip, .playhead-time')) {
+          drag.current = { type: 'playhead', startX: e.clientX, startFrame: frame };
         } else {
           drag.current = { type: 'scrub' };
           onSeek(frameAt(e.clientX));
@@ -765,6 +779,11 @@ function Timeline({
       }}
       onPointerMove={(e) => {
         if (!drag.current) return;
+        if (drag.current.type === 'playhead') {
+          const moved = (e.clientX - drag.current.startX) * framesPerPixel();
+          onSeek(clampFrame(drag.current.startFrame + moved));
+          return;
+        }
         const f = frameAt(e.clientX);
         if (drag.current.type === 'scrub') {
           onSeek(f);
@@ -776,12 +795,12 @@ function Timeline({
       onPointerUp={() => (drag.current = null)}
       onPointerCancel={() => (drag.current = null)}
     >
-      {timeline.segments.map((seg) => {
+      {timeline.segments.map((seg, i) => {
         const deletable = cuts.some((c) => c.atFrame === seg.start);
         return (
           <div
             key={`${seg.start}-${seg.sourceId}`}
-            className="seg"
+            className={`seg${i === timeline.segments.length - 1 ? ' last' : ''}`}
             style={{
               width: `${(seg.len / duration) * 100}%`,
               background: colorOf(seg.sourceId),
@@ -813,11 +832,14 @@ function Timeline({
             title="Drag to move this cut"
           />
         ))}
-      <div className="playhead" style={{ left: `${(frame / duration) * 100}%` }} />
+      <div className="playhead" style={{ left: `${(frame / duration) * 100}%` }}>
+        <div className="playhead-grip" title="Drag to scrub" />
+      </div>
       <div
         className="playhead-time"
         // Clamped so the label stays inside the track at either end.
         style={{ left: `${Math.min(96, Math.max(4, (frame / duration) * 100))}%` }}
+        title="Drag to scrub"
       >
         {formatFrame(frame, fps)}
       </div>
