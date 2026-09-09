@@ -14,6 +14,7 @@ import {
   writeJson,
 } from './folder';
 import { SignalledPeer, iceServers } from './peer';
+import { forgetSource, nameFor, rememberName } from './rig';
 import { Signal, SignalData, joinUrl } from './signal';
 import {
   AutoStatus,
@@ -225,7 +226,9 @@ export class Hub {
         id = `${id}-${n}`;
       }
       const src: Source = this.sources.get(id) ?? this.blankSource(id, m.name, 'remote');
-      src.name = m.name || id;
+      // A name given in the studio outlives the session that gave it: the
+      // phone still calls itself "side", but you called it something else.
+      src.name = nameFor(id) ?? m.name ?? id;
       src.rotation = Number(m.rotation) || 0;
       src.caps = m.caps ?? null;
       src.online = true;
@@ -683,6 +686,7 @@ export class Hub {
       return;
     }
     if (src.control) sendJson(src.control, { type: 'kicked' } satisfies HubToCamera);
+    forgetSource(id);
     this.dropSource(src);
     this.emit();
   }
@@ -708,6 +712,7 @@ export class Hub {
     const clean = name.trim().slice(0, 40);
     if (!clean || clean === src.name) return;
     src.name = clean;
+    rememberName(id, clean);
     const entry = this.recording?.manifest.sources.find((s) => s.id === id);
     if (entry) entry.name = clean;
     this.emit();

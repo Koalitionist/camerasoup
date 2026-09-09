@@ -19,6 +19,7 @@ import {
   requestFolderPermission,
 } from '../lib/folder';
 import { Hub } from '../lib/hub';
+import { loadRig, rememberLocal } from '../lib/rig';
 import { platformInfo } from '../lib/platform';
 import type { HubSnapshot, SessionSummary } from '../lib/rtc-protocol';
 import { stickyRoomCode } from '../lib/signal';
@@ -103,6 +104,7 @@ export default function Studio() {
       try {
         await hub.start();
         setPhase('running');
+        void restoreRig(hub);
       } catch (err) {
         setError(`Could not open the studio room: ${(err as Error).message}`);
         setPhase('error');
@@ -110,6 +112,22 @@ export default function Studio() {
     },
     [code]
   );
+
+  // Bring back the sources this machine was last shooting with. A webcam can
+  // be reopened silently — permission is already granted and the deviceId is
+  // stable. A screen cannot: getDisplayMedia needs a fresh gesture every time,
+  // so a remembered screen waits for one click rather than reopening itself.
+  const restoreRig = async (hub: Hub) => {
+    if (fakeRequested()) return;
+    for (const local of loadRig().locals) {
+      if (local.kind !== 'local-webcam') continue;
+      try {
+        hub.addLocal('local-webcam', await openWebcam(local.deviceId), local.name);
+      } catch {
+        // unplugged, or permission withdrawn since: keep it remembered anyway
+      }
+    }
+  };
 
   const pickFolder = async () => {
     try {
@@ -136,6 +154,7 @@ export default function Studio() {
       // Never record a raw screen capture: see normalizeForRecording.
       const normalized = await normalizeForRecording(raw);
       hubRef.current?.addLocal('local-screen', normalized.stream, 'screen', normalized.stop);
+      rememberLocal({ kind: 'local-screen', name: 'screen' });
     } catch {
       // the user cancelled the picker
     }
@@ -165,7 +184,15 @@ export default function Studio() {
     setWebcamChoices(null);
     try {
       const stream = await openWebcam(device?.deviceId);
-      hubRef.current?.addLocal('local-webcam', stream, cameraName(device?.label));
+      const name = cameraName(device?.label);
+      hubRef.current?.addLocal('local-webcam', stream, name);
+      rememberLocal({
+        kind: 'local-webcam',
+        name,
+        // From the track, not the picker: with a single camera there is no
+        // picker and `device` is undefined.
+        deviceId: stream.getVideoTracks()[0]?.getSettings().deviceId,
+      });
     } catch (err) {
       setError(`Could not add camera: ${(err as Error).message}`);
     }
