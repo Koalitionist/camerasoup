@@ -89,7 +89,8 @@ export type ControlToHub =
   | { type: 'command'; cmd: 'record-start' | 'record-stop' }
   | { type: 'command'; cmd: 'cut' | 'remove'; sourceId: string }
   | { type: 'command'; cmd: 'camera-control'; sourceId: string; zoom?: number; torch?: boolean }
-  | { type: 'command'; cmd: 'auto'; on: boolean };
+  | { type: 'command'; cmd: 'auto'; on: boolean }
+  | { type: 'command'; cmd: 'rename'; sourceId: string; name: string };
 
 export function sendJson(dc: RTCDataChannel | null, msg: unknown) {
   if (dc && dc.readyState === 'open') dc.send(JSON.stringify(msg));

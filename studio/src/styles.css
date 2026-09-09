@@ -516,8 +516,6 @@ button.big:hover:not(:disabled) {
   min-height: 64px;
   position: relative;
   overflow: hidden;
-  /* so the label can react to how much spine it actually got */
-  container-type: size;
   border-radius: 0 56px 56px 0;
   cursor: pointer;
   transition: filter 150ms ease-out;
@@ -543,9 +541,9 @@ button.big:hover:not(:disabled) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* The number is the hotkey and stays poster-sized; the name gives way,
-     because a webcam names itself things like "MacBook Pro Camera" and at
-     36px that needs more spine than four angles leave on any screen. */
+  /* The number is the hotkey and stays poster-sized; the name gives way and
+     is scaled down to whatever spine is left (see CamSpine). This is its
+     largest size, not its only one. */
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -554,16 +552,6 @@ button.big:hover:not(:disabled) {
 
 .cam-spine-label .num {
   font-size: 46px;
-}
-
-/* Measured: ~150px of spine is enough for "action" or "topdown", and a long
-   device name simply ellipsises. Only below that does the name degrade into
-   "1 ac…", and there the number carries the spine alone — the tile's own tag
-   still names the camera. */
-@container (max-height: 170px) {
-  .cam-spine-label .name {
-    display: none;
-  }
 }
 
 .rail-add {
@@ -750,6 +738,23 @@ button.big:hover:not(:disabled) {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+/* Renaming happens where the tag already is, so the label turns into the
+   field rather than opening something on top of it. */
+.tag-input {
+  border: 0;
+  width: 60%;
+  min-width: 140px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tag-input:focus {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 .cell.big .tag {

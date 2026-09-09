@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { HubSnapshot, SnapshotCamera } from '../lib/rtc-protocol';
 import { colorForKey, textOn } from '../lib/theme';
 
@@ -14,6 +14,7 @@ export interface ControlActions {
   remove(sourceId: string): void;
   cameraControl(sourceId: string, c: { zoom?: number; torch?: boolean }): void;
   setAuto(on: boolean): void;
+  rename(sourceId: string, name: string): void;
 }
 
 export default function ControlView({
@@ -34,6 +35,7 @@ export default function ControlView({
   footer?: ReactNode; // the recordings strip, on the Mac only
 }) {
   const { cameras, recording, finalizing } = state;
+  const [renaming, setRenaming] = useState<string | null>(null);
   const live = !!recording && !finalizing;
   const order = cameras.map((c) => c.id);
 
@@ -74,6 +76,12 @@ export default function ControlView({
       onClick={() => actions.cut(cam.id)}
       onRemove={() => actions.remove(cam.id)}
       onControl={(c) => actions.cameraControl(cam.id, c)}
+      renaming={renaming === cam.id}
+      onRenameStart={() => setRenaming(cam.id)}
+      onRenameEnd={(name) => {
+        setRenaming(null);
+        if (name !== undefined) actions.rename(cam.id, name);
+      }}
     />
   );
 
@@ -83,23 +91,15 @@ export default function ControlView({
         <div className="rail-head">
           <span>camerasoup</span>
         </div>
-        {cameras.map((cam) => {
-          const color = colorForKey(cam.keyNumber);
-          return (
-            <div
-              key={cam.id}
-              className={`cam-spine${cam.online ? '' : ' offline'}`}
-              style={{ background: color }}
-              onClick={() => actions.cut(cam.id)}
-              title={cam.name}
-            >
-              <div className="cam-spine-label" style={{ color: textOn(color) }}>
-                <span className="num">{cam.keyNumber}</span>
-                <span className="name">&nbsp;{cam.name}</span>
-              </div>
-            </div>
-          );
-        })}
+        {cameras.map((cam) => (
+          <CamSpine
+            key={cam.id}
+            cam={cam}
+            color={colorForKey(cam.keyNumber)}
+            onCut={() => actions.cut(cam.id)}
+            onRename={() => setRenaming(cam.id)}
+          />
+        ))}
         {onAdd && (
           <div className="rail-add" onClick={onAdd} title="Add a camera">
             +
@@ -164,6 +164,65 @@ export default function ControlView({
   );
 }
 
+// The spine's type is set to the spine, not the other way round: the number is
+// the hotkey and holds its size, and the name is scaled to whatever room is
+// left. One measurement gives the ratio, so there is no fitting loop.
+const MIN_NAME_PX = 13;
+
+function CamSpine({
+  cam,
+  color,
+  onCut,
+  onRename,
+}: {
+  cam: SnapshotCamera;
+  color: string;
+  onCut: () => void;
+  onRename: () => void;
+}) {
+  const label = useRef<HTMLDivElement>(null);
+  const num = useRef<HTMLSpanElement>(null);
+  const name = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const [box, hotkey, text] = [label.current, num.current, name.current];
+    if (!box || !hotkey || !text) return;
+    const fit = () => {
+      text.style.fontSize = '';
+      // Vertical writing mode: a run of text measures along the box's height.
+      const room = box.clientHeight;
+      const taken = hotkey.getBoundingClientRect().height;
+      const needed = text.getBoundingClientRect().height;
+      if (!needed || taken + needed <= room) return;
+      const base = parseFloat(getComputedStyle(text).fontSize);
+      text.style.fontSize = `${Math.max(MIN_NAME_PX, (base * (room - taken)) / needed)}px`;
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [cam.name, cam.keyNumber]);
+
+  return (
+    <div
+      className={`cam-spine${cam.online ? '' : ' offline'}`}
+      style={{ background: color }}
+      onClick={onCut}
+      onDoubleClick={onRename}
+      title={`${cam.name} — double-click to rename`}
+    >
+      <div className="cam-spine-label" ref={label} style={{ color: textOn(color) }}>
+        <span className="num" ref={num}>
+          {cam.keyNumber}
+        </span>
+        <span className="name" ref={name}>
+          &nbsp;{cam.name}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function RecTimer({ startedAt }: { startedAt: number }) {
   const [, force] = useState(0);
   useEffect(() => {
@@ -187,6 +246,9 @@ function Cell({
   onClick,
   onRemove,
   onControl,
+  renaming,
+  onRenameStart,
+  onRenameEnd,
 }: {
   cam: SnapshotCamera;
   big: boolean;
@@ -196,6 +258,9 @@ function Cell({
   onClick: () => void;
   onRemove: () => void;
   onControl: (c: { zoom?: number; torch?: boolean }) => void;
+  renaming: boolean;
+  onRenameStart: () => void;
+  onRenameEnd: (name?: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -243,9 +308,35 @@ function Cell({
           </div>
         </div>
       )}
-      <span className="tag" style={{ background: color, color: textOn(color) }}>
-        {cam.keyNumber} {cam.name}
-      </span>
+      {renaming ? (
+        <input
+          className="tag tag-input"
+          style={{ background: color, color: textOn(color) }}
+          defaultValue={cam.name}
+          autoFocus
+          maxLength={40}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.currentTarget.select()}
+          onBlur={(e) => onRenameEnd(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') onRenameEnd();
+          }}
+        />
+      ) : (
+        <span
+          className="tag"
+          style={{ background: color, color: textOn(color) }}
+          title="Double-click to rename this angle"
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            onRenameStart();
+          }}
+        >
+          {cam.keyNumber} {cam.name}
+        </span>
+      )}
       <span
         className={`cell-status dot ${cam.state === 'recording' ? 'rec' : cam.online ? 'on' : ''}`}
       />

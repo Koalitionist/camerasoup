@@ -699,6 +699,20 @@ export class Hub {
     if (this.program === src.id) this.program = this.sources.keys().next().value ?? null;
   }
 
+  // Only what the angle is called. The id is already in file names, in the
+  // manifest and in every cut, so it stays exactly as it was — renaming an
+  // angle mid-session must not orphan the footage it has already written.
+  renameSource(id: string, name: string) {
+    const src = this.sources.get(id);
+    if (!src) return;
+    const clean = name.trim().slice(0, 40);
+    if (!clean || clean === src.name) return;
+    src.name = clean;
+    const entry = this.recording?.manifest.sources.find((s) => s.id === id);
+    if (entry) entry.name = clean;
+    this.emit();
+  }
+
   cameraControl(id: string, control: { zoom?: number; torch?: boolean }) {
     const src = this.sources.get(id);
     if (!src?.control) return;
@@ -756,6 +770,9 @@ export class Hub {
         break;
       case 'auto':
         this.setAuto(m.on);
+        break;
+      case 'rename':
+        this.renameSource(m.sourceId, m.name);
         break;
     }
   }

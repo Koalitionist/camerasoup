@@ -127,6 +127,7 @@ export default function Studio() {
     remove: (id) => hubRef.current?.removeSource(id),
     cameraControl: (id, c) => hubRef.current?.cameraControl(id, c),
     setAuto: (on) => hubRef.current?.setAuto(on),
+    rename: (sourceId, name) => hubRef.current?.renameSource(sourceId, name),
   };
 
   const addScreen = async () => {
