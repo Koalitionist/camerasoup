@@ -333,6 +333,11 @@ button.big:hover:not(:disabled) {
 .stripe {
   height: 64px;
   box-sizing: border-box;
+  /* The percentage widths are the staircase; this stops a longer line being
+     clipped by one. Copy pushes its own stripe wider rather than losing its
+     tail, so the shape gives way to the words and not the other way round. */
+  min-width: fit-content;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   padding: 0 28px;

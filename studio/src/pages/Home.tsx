@@ -8,7 +8,7 @@ const STRIPES = [
   { text: 'Record every angle', bg: '#1F6FE5', fg: '#fff', width: '100%' },
   { text: 'Cut live with 1 2 3', bg: '#FFC61A', fg: '#111', width: '92%' },
   { text: 'Fix cuts afterwards', bg: '#FF3B2F', fg: '#fff', width: '84%' },
-  { text: 'Render 4:5 + 9:16', bg: '#6F3FB8', fg: '#fff', width: '76%' },
+  { text: 'Render 4:5, 9:16, 16:9', bg: '#6F3FB8', fg: '#fff', width: '76%' },
   { text: 'Footage stays home', bg: '#22B8E0', fg: '#111', width: '68%' },
 ];
 
