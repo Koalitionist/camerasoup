@@ -101,6 +101,19 @@ app.get('/api/sessions/:id', (req, res) => {
     res.status(404).json({ error: 'not found' });
   }
 });
+app.delete('/api/sessions/:id', (req, res) => {
+  const dir = sessionDir(req.params.id);
+  // Only ever a session folder directly under SESSIONS_DIR, never a path the
+  // caller composed: a recording is deleted outright, with no trash to fish
+  // it back out of.
+  if (path.dirname(dir) !== SESSIONS_DIR || !fs.existsSync(dir)) {
+    res.status(404).json({ error: 'no such session' });
+    return;
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+  res.json({ ok: true });
+});
+
 app.post('/api/sessions/:id/edit', (req, res) => {
   try {
     const manifest = readManifest(req.params.id);

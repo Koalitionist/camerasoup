@@ -35,6 +35,8 @@ export interface SessionStore {
   /** Writes a finished render next to the footage. */
   writeOutput(id: string, name: string, data: Blob): Promise<void>;
   reveal(id: string): Promise<void>;
+  /** Permanent: the File System Access API has no route to the OS trash. */
+  remove(id: string): Promise<void>;
 }
 
 class ServerStore implements SessionStore {
@@ -48,6 +50,11 @@ class ServerStore implements SessionStore {
   async load(id: string) {
     const res = await fetch(`/api/sessions/${id}`);
     return res.ok ? ((await res.json()) as Manifest) : null;
+  }
+
+  async remove(id: string) {
+    const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`could not delete ${id} (${res.status})`);
   }
 
   async saveEdit(id: string, patch: EditPatch) {
@@ -111,6 +118,10 @@ class FolderStore implements SessionStore {
 
   // The manifest on disk is the source of truth; an edit is merged into it
   // so a concurrent field (durations, file names) is never clobbered.
+  async remove(id: string) {
+    await this.root.removeEntry(id, { recursive: true });
+  }
+
   async saveEdit(id: string, patch: EditPatch) {
     const dir = await this.dir(id);
     const manifest = await readJson<Manifest>(dir, 'session.json');

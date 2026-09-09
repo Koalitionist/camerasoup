@@ -116,6 +116,9 @@ button.big:hover:not(:disabled) {
   color: #fff;
 }
 
+/* The takes list lives on the light ground, so its small pills need the dark
+   outline; `ghost` is the dark-ground variant and would be cream on cream. */
+
 /* outline pill on a dark ground */
 .pill.ghost {
   border: 2px solid var(--text);
@@ -423,6 +426,85 @@ button.big:hover:not(:disabled) {
   .stripe,
   .wordmark span {
     animation: none;
+  }
+}
+
+/* ---- takes list ---------------------------------------------------------- */
+
+.take-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.take-tools .spacer {
+  flex: 1;
+}
+
+.pill.danger {
+  background: var(--rec);
+  border: 2px solid var(--rec);
+  color: #fff;
+  padding: 6px 14px;
+  font-size: 15px;
+}
+
+.danger-text {
+  color: var(--rec);
+}
+
+.takes {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--light-ink);
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-y: auto;
+}
+
+.take {
+  display: grid;
+  grid-template-columns: auto 170px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--light-ink);
+  cursor: pointer;
+}
+
+.take.picked {
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.take input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--light-ink);
+}
+
+.take b {
+  font-weight: 700;
+}
+
+.take-detail,
+.take-meta {
+  color: var(--light-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.take-meta {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .take {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .take-detail {
+    display: none;
   }
 }
 

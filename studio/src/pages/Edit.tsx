@@ -73,7 +73,14 @@ export default function Edit() {
       </SpinePage>
     );
   }
-  if (!sessionId) return <SessionPicker sessions={sessions} />;
+  if (!sessionId)
+    return (
+      <SessionPicker
+        sessions={sessions}
+        store={store}
+        onChanged={() => void store?.list().then(setSessions)}
+      />
+    );
   if (!manifest) {
     return (
       <SpinePage>
@@ -87,22 +94,156 @@ export default function Edit() {
   return <Editor manifest={manifest} store={store!} />;
 }
 
-function SessionPicker({ sessions }: { sessions: Manifest[] | null }) {
+// A take is a dud if a source failed outright or nothing ran long enough to
+// be footage. Most of what piles up in a folder is one or the other.
+const DUD_SECONDS = 3;
+
+function takeStats(m: Manifest) {
+  const seconds = m.sources.reduce((n, s) => Math.max(n, s.duration ?? 0), 0);
+  const bytes = m.sources.reduce((n, s) => n + (s.bytes ?? 0), 0);
+  const failed = m.sources.filter((s) => s.status === 'failed').length;
+  return { seconds, bytes, failed, dud: failed > 0 || seconds < DUD_SECONDS };
+}
+
+function sizeOf(bytes: number) {
+  if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+  if (bytes >= 1e6) return `${Math.round(bytes / 1e6)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1e3))} kB`;
+}
+
+function SessionPicker({
+  sessions,
+  store,
+  onChanged,
+}: {
+  sessions: Manifest[] | null;
+  store: SessionStore | null;
+  onChanged: () => void;
+}) {
   const home = isHosted() ? '/studio' : '/producer';
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const takes = sessions ?? [];
+  const duds = takes.filter((m) => takeStats(m).dud);
+  const chosen = takes.filter((m) => picked.has(m.id));
+  const freed = chosen.reduce((n, m) => n + takeStats(m).bytes, 0);
+
+  // Any change to the selection disarms the confirm: the count on that button
+  // has to be the count you agreed to.
+  const select = (ids: string[]) => {
+    setConfirming(false);
+    setPicked(new Set(ids));
+  };
+  const toggle = (id: string) => {
+    setConfirming(false);
+    setPicked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteChosen = async () => {
+    if (!store || !chosen.length) return;
+    setBusy(true);
+    setProblem(null);
+    const stuck: string[] = [];
+    for (const m of chosen) {
+      try {
+        await store.remove(m.id);
+      } catch {
+        stuck.push(m.id);
+      }
+    }
+    setBusy(false);
+    setConfirming(false);
+    setPicked(new Set());
+    setProblem(
+      stuck.length ? `Could not delete ${stuck.length}: ${stuck.slice(0, 3).join(', ')}` : null
+    );
+    onChanged();
+  };
+
   return (
     <SpinePage>
       <span className="meta">Editor</span>
       <h1>Edit a session</h1>
       {!sessions && <p className="hint">Loading…</p>}
       {sessions?.length === 0 && <p className="lede">No sessions yet — record one first.</p>}
-      <div className="roles">
-        {sessions?.map((m) => (
-          <a key={m.id} className="role" href={`/edit?session=${m.id}`}>
-            <b>{m.id}</b>
-            <span>{m.sources.map((s) => s.id).join(' · ')}</span>
-          </a>
-        ))}
+
+      {takes.length > 0 && (
+        <div className="take-tools">
+          <span className="meta">
+            {takes.length} recording{takes.length === 1 ? '' : 's'}
+          </span>
+          <button className="pill outline small" onClick={() => select(takes.map((m) => m.id))}>
+            Select all
+          </button>
+          {duds.length > 0 && (
+            <button
+              className="pill outline small"
+              title={`Failed takes, and anything under ${DUD_SECONDS} seconds`}
+              onClick={() => select(duds.map((m) => m.id))}
+            >
+              Select the duds · {duds.length}
+            </button>
+          )}
+          {picked.size > 0 && (
+            <button className="pill outline small" onClick={() => select([])}>
+              Clear
+            </button>
+          )}
+          <span className="spacer" />
+          {picked.size > 0 &&
+            (confirming ? (
+              <>
+                <button className="pill small danger" disabled={busy} onClick={deleteChosen}>
+                  {busy ? 'Deleting…' : `Delete ${picked.size} for good`}
+                </button>
+                <button className="pill outline small" onClick={() => setConfirming(false)}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button className="pill outline small" onClick={() => setConfirming(true)}>
+                Delete {picked.size} · {sizeOf(freed)}
+              </button>
+            ))}
+        </div>
+      )}
+      {confirming && (
+        <p className="hint danger-text">
+          This removes the footage from the folder. There is no undo and it does not go to the
+          Trash.
+        </p>
+      )}
+      {problem && <p className="hint danger-text">{problem}</p>}
+
+      <div className="takes">
+        {takes.map((m) => {
+          const { seconds, bytes, failed, dud } = takeStats(m);
+          return (
+            <label key={m.id} className={`take${picked.has(m.id) ? ' picked' : ''}`}>
+              <input type="checkbox" checked={picked.has(m.id)} onChange={() => toggle(m.id)} />
+              <b>{m.id}</b>
+              <span className="take-detail">{m.sources.map((s) => s.name || s.id).join(' · ')}</span>
+              <span className="take-meta">
+                {seconds >= 1 ? `${Math.round(seconds)} s` : '—'} · {sizeOf(bytes)}
+                {failed > 0 && <span className="danger-text"> · {failed} failed</span>}
+                {dud && failed === 0 && <span className="meta"> · short</span>}
+              </span>
+              <a href={`/edit?session=${m.id}`} onClick={(e) => e.stopPropagation()}>
+                <button className="pill outline small">Edit</button>
+              </a>
+            </label>
+          );
+        })}
       </div>
+
       <div className="actions-row">
         <a href={home}>
           <button className="pill outline">← Studio</button>
