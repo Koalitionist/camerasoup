@@ -705,6 +705,20 @@ button.big:hover:not(:disabled) {
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
 }
 
+/* Landscape is wider than the cell rather than taller, so it is sized from
+   the width. The frame it draws sits on a contained picture, so it lands on
+   the real edges of what ships. */
+.framing .f169 {
+  height: auto;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+}
+
+.framing .f169 .mono {
+  top: 10px;
+}
+
 .framing .f916 {
   aspect-ratio: 9 / 16;
   border-style: dashed;

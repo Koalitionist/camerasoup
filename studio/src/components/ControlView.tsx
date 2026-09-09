@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { HubSnapshot, SnapshotCamera } from '../lib/rtc-protocol';
+import type { Framing, HubSnapshot, SnapshotCamera } from '../lib/rtc-protocol';
 import { colorForKey, textOn } from '../lib/theme';
 
 // The control surface: the camera spines, the mosaic, the REC button, the
@@ -15,6 +15,7 @@ export interface ControlActions {
   cameraControl(sourceId: string, c: { zoom?: number; torch?: boolean; lock?: boolean }): void;
   setAuto(on: boolean): void;
   rename(sourceId: string, name: string): void;
+  setFraming(framing: Framing): void;
 }
 
 export default function ControlView({
@@ -73,6 +74,7 @@ export default function ControlView({
       color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
       canRemove={!recording && !big}
+      framing={state.framing}
       onClick={() => actions.cut(cam.id)}
       onRemove={() => actions.remove(cam.id)}
       onControl={(c) => actions.cameraControl(cam.id, c)}
@@ -121,6 +123,13 @@ export default function ControlView({
             </span>
           )}
           <span className="spacer" />
+          <button
+            className="pill ghost small"
+            title="What the program monitor frames for: the social crops, or 16:9"
+            onClick={() => actions.setFraming(state.framing === 'social' ? 'landscape' : 'social')}
+          >
+            {state.framing === 'landscape' ? '16:9' : '4:5 · 9:16'}
+          </button>
           {cameras.length > 1 && (
             <button
               className={`pill ghost small auto-toggle${state.auto === 'on' ? ' on' : ''}`}
@@ -243,6 +252,7 @@ function Cell({
   color,
   stream,
   canRemove,
+  framing,
   onClick,
   onRemove,
   onControl,
@@ -255,6 +265,7 @@ function Cell({
   color: string;
   stream: MediaStream | null;
   canRemove: boolean;
+  framing: Framing;
   onClick: () => void;
   onRemove: () => void;
   onControl: (c: { zoom?: number; torch?: boolean; lock?: boolean }) => void;
@@ -276,8 +287,10 @@ function Cell({
     'cell',
     big && 'big',
     // A camera fills its cell and is cropped a little; a screen is shown
-    // whole, because its edges carry content a crop would eat.
-    cam.kind === 'local-screen' && 'contain',
+    // whole, because its edges carry content a crop would eat. So is the
+    // program when framing for landscape, which is wider than the cell —
+    // cropping it would hide the very material that ships.
+    (cam.kind === 'local-screen' || (big && framing === 'landscape')) && 'contain',
   ]
     .filter(Boolean)
     .join(' ');
@@ -300,12 +313,20 @@ function Cell({
           letterboxed screen share is already whole, so it gets none. */}
       {big && stream && cam.kind !== 'local-screen' && (
         <div className="framing" aria-hidden="true">
-          <div className="frame f45">
-            <span className="mono">4:5</span>
-          </div>
-          <div className="frame f916">
-            <span className="mono">9:16</span>
-          </div>
+          {framing === 'landscape' ? (
+            <div className="frame f169">
+              <span className="mono">16:9</span>
+            </div>
+          ) : (
+            <>
+              <div className="frame f45">
+                <span className="mono">4:5</span>
+              </div>
+              <div className="frame f916">
+                <span className="mono">9:16</span>
+              </div>
+            </>
+          )}
         </div>
       )}
       {renaming ? (

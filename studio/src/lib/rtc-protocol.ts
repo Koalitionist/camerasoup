@@ -20,6 +20,10 @@ export type SourceKind = 'remote' | 'local-webcam' | 'local-screen';
 export type SourceState = 'live' | 'recording' | 'flushing' | 'interrupted';
 // Auto-switching: 'loading' covers the one-time fetch of the face detector.
 export type AutoStatus = 'off' | 'loading' | 'on' | 'error';
+// What the program monitor is framing for. Social wants the narrow crops and
+// can be judged on a cropped monitor; landscape is wider than the monitor's
+// own cell, so the whole frame has to be shown to be framed at all.
+export type Framing = 'social' | 'landscape';
 
 export type CameraToHub =
   | { type: 'hello'; name: string; kind: 'remote'; rotation: number; caps: CameraCaps | null }
@@ -86,6 +90,7 @@ export interface HubSnapshot {
   finalizing: string | null;
   program: string | null;
   auto: AutoStatus;
+  framing: Framing;
   sessions: SessionSummary[];
   toast: string | null;
 }
@@ -103,7 +108,8 @@ export type ControlToHub =
       lock?: boolean;
     }
   | { type: 'command'; cmd: 'auto'; on: boolean }
-  | { type: 'command'; cmd: 'rename'; sourceId: string; name: string };
+  | { type: 'command'; cmd: 'rename'; sourceId: string; name: string }
+  | { type: 'command'; cmd: 'framing'; value: Framing };
 
 export function sendJson(dc: RTCDataChannel | null, msg: unknown) {
   if (dc && dc.readyState === 'open') dc.send(JSON.stringify(msg));

@@ -9,7 +9,7 @@
 // this origin and a deviceId is stable. A screen share cannot — getDisplayMedia
 // requires a fresh user gesture every time, by design — so a screen is
 // remembered only so its name and place come back once you re-share it.
-import { slugify } from './rtc-protocol';
+import { type Framing, slugify } from './rtc-protocol';
 
 const KEY = 'camerasoup.rig';
 
@@ -22,6 +22,7 @@ export interface RigLocal {
 export interface Rig {
   locals: RigLocal[];
   names: Record<string, string>; // custom names, by source id
+  framing: Framing;
 }
 
 // Every call builds its own arrays and objects. Callers mutate what they get
@@ -34,10 +35,11 @@ function read(): Rig {
     return {
       locals: Array.isArray(parsed.locals) ? parsed.locals.filter((l) => l && l.kind && l.name) : [],
       names: parsed.names && typeof parsed.names === 'object' ? { ...parsed.names } : {},
+      framing: parsed.framing === 'landscape' ? 'landscape' : 'social',
     };
   } catch {
     // unreadable or disabled storage: the studio still works, it just forgets
-    return { locals: [], names: {} };
+    return { locals: [], names: {}, framing: 'social' };
   }
 }
 
@@ -75,6 +77,12 @@ export function rememberName(id: string, name: string) {
   rig.names[id] = name;
   const local = rig.locals.find((l) => slugify(l.name) === id);
   if (local) local.name = name;
+  write(rig);
+}
+
+export function rememberFraming(framing: Framing) {
+  const rig = read();
+  rig.framing = framing;
   write(rig);
 }
 

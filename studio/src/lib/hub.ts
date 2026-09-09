@@ -14,11 +14,12 @@ import {
   writeJson,
 } from './folder';
 import { SignalledPeer, iceServers } from './peer';
-import { forgetSource, nameFor, rememberName } from './rig';
+import { forgetSource, loadRig, nameFor, rememberFraming, rememberName } from './rig';
 import { Signal, SignalData, joinUrl } from './signal';
 import {
   AutoStatus,
   CameraCaps,
+  Framing,
   CameraToHub,
   ControlToHub,
   HubSnapshot,
@@ -113,6 +114,7 @@ export class Hub {
   private program: string | null = null;
   private autoSwitcher: AutoSwitcher | null = null;
   private autoStatus: AutoStatus = 'off';
+  private framing: Framing = loadRig().framing;
   private sessions: Manifest[] = [];
   private toast: string | null = null;
   private toastTimer: number | undefined;
@@ -720,6 +722,13 @@ export class Hub {
     this.emit();
   }
 
+  setFraming(framing: Framing) {
+    if (framing === this.framing) return;
+    this.framing = framing;
+    rememberFraming(framing);
+    this.emit();
+  }
+
   cameraControl(id: string, control: { zoom?: number; torch?: boolean; lock?: boolean }) {
     const src = this.sources.get(id);
     if (!src?.control) return;
@@ -782,6 +791,9 @@ export class Hub {
       case 'rename':
         this.renameSource(m.sourceId, m.name);
         break;
+      case 'framing':
+        this.setFraming(m.value);
+        break;
     }
   }
 
@@ -830,6 +842,7 @@ export class Hub {
       finalizing: this.finalizingId,
       program: this.program,
       auto: this.autoStatus,
+      framing: this.framing,
       sessions: this.sessions.slice(0, 30).map((m) => ({
         id: m.id,
         sources: m.sources.map((s) => ({
