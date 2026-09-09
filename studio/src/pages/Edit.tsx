@@ -365,21 +365,6 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     return () => window.removeEventListener('keydown', onKey);
   }, [sources, addCut, deleteCutAtPlayhead, undo, toggle, seekTo]);
 
-  if (sources.length === 0) {
-    return (
-      <SpinePage>
-        <span className="meta">{manifest.id}</span>
-        <h1>This session has no usable footage.</h1>
-        <div className="actions-row">
-          <a href="/edit">
-            <button className="pill outline">← Sessions</button>
-          </a>
-        </div>
-      </SpinePage>
-    );
-  }
-
-  const colorOf = (id: string) => colorForKey(sources.findIndex((s) => s.id === id) + 1);
   // Match every other angle onto this one, using the frames already on screen.
   const matchTo = useCallback(
     (referenceId: string) => {
@@ -405,6 +390,23 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     []
   );
 
+  // Every hook must sit above this line: the early return runs a shorter list
+  // of them, and React tears the tree down when the counts disagree.
+  if (sources.length === 0) {
+    return (
+      <SpinePage>
+        <span className="meta">{manifest.id}</span>
+        <h1>This session has no usable footage.</h1>
+        <div className="actions-row">
+          <a href="/edit">
+            <button className="pill outline">← Sessions</button>
+          </a>
+        </div>
+      </SpinePage>
+    );
+  }
+
+  const colorOf = (id: string) => colorForKey(sources.findIndex((s) => s.id === id) + 1);
   const activeId = activeSourceAt(frame);
   const activeSource = sources.find((s) => s.id === activeId) ?? null;
   const audioSource = sources.find((s) => s.id === audioSourceId) ?? sources[0];
