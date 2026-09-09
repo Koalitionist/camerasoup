@@ -20,7 +20,7 @@ import {
 } from '../lib/folder';
 import { Hub } from '../lib/hub';
 import { platformInfo } from '../lib/platform';
-import type { HubSnapshot } from '../lib/rtc-protocol';
+import type { HubSnapshot, SessionSummary } from '../lib/rtc-protocol';
 import { stickyRoomCode } from '../lib/signal';
 
 type Phase = 'folder' | 'starting' | 'running' | 'error';
@@ -155,11 +155,16 @@ export default function Studio() {
     }
   };
 
+  // "MacBook Pro Camera (0000:0001)" — the trailing hardware id is noise that
+  // then has to be truncated in every label that shows it.
+  const cameraName = (label?: string) =>
+    (label ?? '').replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, '').trim() || 'mac-cam';
+
   const addWebcam = async (device?: MediaDeviceInfo) => {
     setWebcamChoices(null);
     try {
       const stream = await openWebcam(device?.deviceId);
-      hubRef.current?.addLocal('local-webcam', stream, device?.label || 'mac-cam');
+      hubRef.current?.addLocal('local-webcam', stream, cameraName(device?.label));
     } catch (err) {
       setError(`Could not add camera: ${(err as Error).message}`);
     }
@@ -261,39 +266,53 @@ export default function Studio() {
             )}
           </div>
         }
-        footer={
-          <section className="recordings">
-            <div className="recordings-title">Recordings</div>
-            {state.sessions.length === 0 && <span className="meta">none yet — hit REC</span>}
-            {state.sessions.map((s) => (
-              <div className="session-row" key={s.id}>
-                <strong>{s.id}</strong>
-                <span className="meta">
-                  {s.sources
-                    .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)} s` : ''}`)
-                    .join(' · ')}
-                </span>
-                {s.sources
-                  .filter((x) => x.error)
-                  .map((x) => (
-                    <span key={x.id} className="meta problem">
-                      {x.id}: {x.error}
-                    </span>
-                  ))}
-                <span className="spacer" />
-                <a href={`/edit?session=${s.id}`}>
-                  <button className="pill ghost small">Edit</button>
-                </a>
-              </div>
-            ))}
-          </section>
-        }
+        footer={<LastTake sessions={state.sessions} />}
       />
 
       {showJoin && <JoinOverlay state={state} onClose={() => setShowJoin(false)} />}
       {error && <div className="toast">{error}</div>}
       {state.toast && <div className="toast">{state.toast}</div>}
     </>
+  );
+}
+
+// While shooting, the only recording worth screen space is the one just made.
+// The full archive is the session picker at /edit, so this is a line and a
+// link rather than a table that grew to a third of the producer.
+function LastTake({ sessions }: { sessions: SessionSummary[] }) {
+  const last = sessions[0];
+  if (!last) {
+    return (
+      <section className="recordings">
+        <span className="meta">No recordings yet — hit REC</span>
+      </section>
+    );
+  }
+  const failed = last.sources.filter((x) => x.error);
+  return (
+    <section className="recordings">
+      <span className="meta">Last take</span>
+      <strong>{last.id}</strong>
+      <span className="meta">
+        {last.sources
+          .map((x) => `${x.id}${x.duration ? ` ${x.duration.toFixed(0)} s` : ''}`)
+          .join(' · ')}
+      </span>
+      {failed.length > 0 && (
+        <span className="meta problem">
+          {failed.length} source{failed.length === 1 ? '' : 's'} failed
+        </span>
+      )}
+      <span className="spacer" />
+      <a href={`/edit?session=${last.id}`}>
+        <button className="pill ghost small">Edit</button>
+      </a>
+      <a href="/edit">
+        <button className="pill ghost small">
+          All {sessions.length} recording{sessions.length === 1 ? '' : 's'}
+        </button>
+      </a>
+    </section>
   );
 }
 

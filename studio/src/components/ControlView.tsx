@@ -55,8 +55,11 @@ export default function ControlView({
   const onlineCount = cameras.filter((c) => c.online).length;
 
   // The program cell is one wide column spanning every row; the rest of the
-  // cameras and the add cell fill the columns beside it.
-  const slots = cameras.length + (extras ? 1 : 0);
+  // cameras and the add cell fill the columns beside it. Whatever is on air
+  // is shown there and only there — a second, dimmed copy of it in the grid
+  // spent a whole cell restating what the big cell's outline already says.
+  const others = cameras.filter((c) => c.id !== programId);
+  const slots = others.length + (extras ? 1 : 0);
   const rows = slots <= 4 ? 2 : slots <= 6 ? 3 : 4;
   const cols = Math.max(1, Math.ceil(slots / rows));
 
@@ -67,7 +70,6 @@ export default function ControlView({
       big={big}
       color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
-      onAir={!big && programId === cam.id}
       canRemove={!recording && !big}
       onClick={() => actions.cut(cam.id)}
       onRemove={() => actions.remove(cam.id)}
@@ -93,7 +95,7 @@ export default function ControlView({
             >
               <div className="cam-spine-label" style={{ color: textOn(color) }}>
                 <span className="num">{cam.keyNumber}</span>
-                &nbsp;{cam.name}
+                <span className="name">&nbsp;{cam.name}</span>
               </div>
             </div>
           );
@@ -152,7 +154,7 @@ export default function ControlView({
           }}
         >
           {program && cell(program, true)}
-          {cameras.map((c) => cell(c, false))}
+          {others.map((c) => cell(c, false))}
           {extras}
         </main>
 
@@ -181,7 +183,6 @@ function Cell({
   big,
   color,
   stream,
-  onAir,
   canRemove,
   onClick,
   onRemove,
@@ -191,7 +192,6 @@ function Cell({
   big: boolean;
   color: string;
   stream: MediaStream | null;
-  onAir: boolean;
   canRemove: boolean;
   onClick: () => void;
   onRemove: () => void;
@@ -210,7 +210,6 @@ function Cell({
   const className = [
     'cell',
     big && 'big',
-    onAir && 'onair',
     // A camera fills its cell and is cropped a little; a screen is shown
     // whole, because its edges carry content a crop would eat.
     cam.kind === 'local-screen' && 'contain',
@@ -231,7 +230,19 @@ function Cell({
         style={cam.rotation ? { transform: `rotate(${cam.rotation}deg)` } : undefined}
       />
       {!stream && <div className="nosignal">{cam.online ? 'connecting…' : 'offline'}</div>}
-      {onAir && <div className="onair-caption mono">on air</div>}
+      {/* The renders are 1080×1350 and 1080×1920, but the monitor is
+          landscape: without these you frame a shot that never ships. A
+          letterboxed screen share is already whole, so it gets none. */}
+      {big && stream && cam.kind !== 'local-screen' && (
+        <div className="framing" aria-hidden="true">
+          <div className="frame f45">
+            <span className="mono">4:5</span>
+          </div>
+          <div className="frame f916">
+            <span className="mono">9:16</span>
+          </div>
+        </div>
+      )}
       <span className="tag" style={{ background: color, color: textOn(color) }}>
         {cam.keyNumber} {cam.name}
       </span>

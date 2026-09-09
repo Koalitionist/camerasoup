@@ -516,6 +516,8 @@ button.big:hover:not(:disabled) {
   min-height: 64px;
   position: relative;
   overflow: hidden;
+  /* so the label can react to how much spine it actually got */
+  container-type: size;
   border-radius: 0 56px 56px 0;
   cursor: pointer;
   transition: filter 150ms ease-out;
@@ -529,22 +531,39 @@ button.big:hover:not(:disabled) {
   opacity: 0.45;
 }
 
+/* Vertical writing mode rather than a rotate: a rotated absolute box has no
+   height to overflow out of, so a long device label ("MacBook Pro Camera")
+   just ran off the end of its pill. Flowing the text vertically makes the
+   spine's own height the constraint, so it truncates instead. */
 .cam-spine-label {
   position: absolute;
-  left: 0;
-  bottom: 24px;
-  transform-origin: left bottom;
-  transform: rotate(-90deg) translateY(100%);
+  inset: 12px 0 12px 14px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
   white-space: nowrap;
-  font-size: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* The number is the hotkey and stays poster-sized; the name gives way,
+     because a webcam names itself things like "MacBook Pro Camera" and at
+     36px that needs more spine than four angles leave on any screen. */
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1;
-  padding-left: 14px;
 }
 
 .cam-spine-label .num {
-  font-size: 48px;
+  font-size: 46px;
+}
+
+/* Measured: ~150px of spine is enough for "action" or "topdown", and a long
+   device name simply ellipsises. Only below that does the name degrade into
+   "1 ac…", and there the number carries the spine alone — the tile's own tag
+   still names the camera. */
+@container (max-height: 170px) {
+  .cam-spine-label .name {
+    display: none;
+  }
 }
 
 .rail-add {
@@ -670,21 +689,55 @@ button.big:hover:not(:disabled) {
 }
 
 .cell.big {
-  grid-row: 1 / 3;
+  grid-row: 1 / -1;
 }
 
-/* the small cell of whatever is on the program monitor steps back */
-.cell.onair {
-  opacity: 0.5;
-}
-
-.cell .onair-caption {
+/* Finding 1: what actually ships. Everything outside the 4:5 crop is dimmed
+   by the ring shadow, and the 9:16 crop is drawn inside it — so the program
+   monitor shows the two frames the render will produce, not the landscape
+   box the camera happens to send. */
+.framing {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+}
+
+.framing .frame {
+  position: absolute;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 20px;
+}
+
+.framing .f45 {
+  aspect-ratio: 4 / 5;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+}
+
+.framing .f916 {
+  aspect-ratio: 9 / 16;
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* One label at each end, or the two crops caption the same spot and the
+   text lands on top of itself. */
+.framing .frame .mono {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.framing .f45 .mono {
+  top: 10px;
+}
+
+.framing .f916 .mono {
+  bottom: 10px;
 }
 
 .tag {
@@ -798,18 +851,38 @@ button.big:hover:not(:disabled) {
 
 .recordings {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   border-top: 1px solid var(--hairline);
   margin-top: 12px;
-  padding: 12px 8px 0;
-  max-height: 30vh;
-  overflow-y: auto;
+  padding: 10px 8px 0;
+  height: 56px;
+  font-size: 15px;
+  min-width: 0;
 }
 
-.recordings-title {
+.recordings .meta {
   color: var(--dim);
-  font-size: 15px;
-  font-weight: 500;
-  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recordings strong {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.recordings .meta.problem {
+  color: var(--rec);
+  flex-shrink: 0;
+}
+
+.recordings .spacer {
+  flex: 1;
 }
 
 .session-row {
