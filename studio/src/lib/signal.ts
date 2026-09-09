@@ -28,6 +28,37 @@ export function newRoomCode(length = 6): string {
   return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('');
 }
 
+// The studio's pages are plain links, so opening the editor and coming back
+// is a full page load. The room code has to survive that: minting a new one
+// would leave every phone connected to a room the studio has stopped
+// listening to, looking exactly like the cameras were forgotten. Per tab, so
+// a new tab still starts a new room.
+const ROOM_KEY = 'camerasoup.roomCode';
+
+export function stickyRoomCode(fromUrl?: string | null): string {
+  const clean = (code: string) =>
+    code
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 12);
+  let code = clean(fromUrl ?? '');
+  if (!code) {
+    try {
+      code = clean(sessionStorage.getItem(ROOM_KEY) ?? '');
+    } catch {
+      // private mode, or storage disabled: fall through to a fresh code
+    }
+  }
+  if (!code) code = newRoomCode();
+  try {
+    sessionStorage.setItem(ROOM_KEY, code);
+  } catch {
+    // not being able to remember it is survivable; forgetting silently is not,
+    // so the caller also writes the code into the URL.
+  }
+  return code;
+}
+
 // Same origin in production. The localStorage override lets a Vite dev
 // server talk to a deployed Worker.
 export function signalOrigin(): string {

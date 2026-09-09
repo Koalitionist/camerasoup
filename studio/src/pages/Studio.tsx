@@ -21,7 +21,7 @@ import {
 import { Hub } from '../lib/hub';
 import { platformInfo } from '../lib/platform';
 import type { HubSnapshot } from '../lib/rtc-protocol';
-import { newRoomCode } from '../lib/signal';
+import { stickyRoomCode } from '../lib/signal';
 
 type Phase = 'folder' | 'starting' | 'running' | 'error';
 
@@ -38,13 +38,16 @@ export default function Studio() {
   const hubRef = useRef<Hub | null>(null);
   const platform = platformInfo();
 
-  const [code] = useState(
-    () =>
-      (new URLSearchParams(location.search).get('code') ?? '')
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '')
-        .slice(0, 12) || newRoomCode()
-  );
+  const [code] = useState(() => stickyRoomCode(new URLSearchParams(location.search).get('code')));
+
+  // Keep the code in the URL as well as the tab's storage, so a reload or a
+  // trip through the editor lands back in the same room either way.
+  useEffect(() => {
+    const url = new URL(location.href);
+    if (url.searchParams.get('code') === code) return;
+    url.searchParams.set('code', code);
+    history.replaceState(null, '', url);
+  }, [code]);
 
   useEffect(() => {
     if (opfsRequested()) {
