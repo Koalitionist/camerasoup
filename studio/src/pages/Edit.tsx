@@ -469,6 +469,15 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
             ))}
           </span>
         </label>
+        {Object.keys(grades).length > 0 && (
+          <button
+            className="pill ghost small"
+            title="Clear the colour correction on every angle"
+            onClick={() => setGrades({})}
+          >
+            Reset colour
+          </button>
+        )}
         {render.state === 'running' ? (
           <span className="field">
             rendering {render.format ?? ''} {Math.round(render.progress * 100)}%
@@ -798,10 +807,20 @@ function AngleTile({
       >
         ⟳
       </button>
+      <button
+        className="angle-match"
+        title="Match every other angle to this one"
+        onClick={(e) => {
+          e.stopPropagation();
+          onMatchTo();
+        }}
+      >
+        Match
+      </button>
+      {/* Otherwise a corrected angle looks exactly like an untouched one, and
+          there is no way to tell what you have already changed. */}
+      {!isNeutral(grade) && <span className="angle-graded">graded</span>}
       <div className="angle-grade" onClick={(e) => e.stopPropagation()}>
-        <button title="Match every other angle to this one" onClick={onMatchTo}>
-          Match to this
-        </button>
         {GRADE_SLIDERS.map(({ key, label, min, max }) => (
           <label key={key}>
             <span>{label}</span>

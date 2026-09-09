@@ -241,6 +241,8 @@ export default function Check() {
           <Step label="Phone" state={phoneState} detail={phoneDetail} />
           <Step label="Connection" state={connectionState} detail={connectionDetail} />
           <Step label="Speed" state={speedState} detail={speedDetail} />
+          {/* Beneath the rows it explains, not four hundred pixels below them. */}
+          {signalError && <p className="step-problem">{signalError}</p>}
         </section>
         <aside className="check-join">
           {qr ? (
@@ -253,11 +255,6 @@ export default function Check() {
           <p className="hint">Scan with the phone’s camera app, or type the address in Safari.</p>
         </aside>
       </div>
-      {signalError && (
-        <div className="edged verdict red">
-          <p className="hint">{signalError}</p>
-        </div>
-      )}
       {report && (
         <VerdictCard
           report={report}
