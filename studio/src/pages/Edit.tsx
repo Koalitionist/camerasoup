@@ -295,14 +295,22 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               duration: s.duration!,
               rotation: rotations[s.id] ?? 0,
               grade: grades[s.id],
+              hasAudio: s.hasAudio,
             })),
     [usable, urls, rotations, grades]
   );
 
   const [cuts, setCuts] = useState<Cut[]>(manifest.cuts ?? []);
-  const [audioSourceId, setAudioSourceId] = useState<string | null>(
-    manifest.audioSource ?? sources[0]?.id ?? null
-  );
+  // Null means "not chosen yet" and resolves below; only an explicit pick is
+  // stored, so opening a session never rewrites its manifest.
+  const [audioSourceId, setAudioSourceId] = useState<string | null>(manifest.audioSource);
+  // A screen share is only silent if we know it is: undefined comes from
+  // sessions recorded before the flag existed and must not be read as silence.
+  const carriesAudio = (s: EditSource) => s.hasAudio !== false;
+  // Default to a source that actually has sound — the first angle is often
+  // the shared screen, and picking it would render a silent film.
+  const chosenAudioId =
+    audioSourceId ?? sources.find(carriesAudio)?.id ?? sources[0]?.id ?? null;
   const [format, setFormat] = useState<FilmFormat>('4:5');
   // Landscape is off by default: it is a third encode, and most takes here are
   // going somewhere vertical.
@@ -316,8 +324,8 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   }>({ state: 'idle', progress: 0 });
 
   const props: FilmProps = useMemo(
-    () => ({ sources, cuts, audioSourceId, fps, format }),
-    [sources, cuts, audioSourceId, fps, format]
+    () => ({ sources, cuts, audioSourceId: chosenAudioId, fps, format }),
+    [sources, cuts, chosenAudioId, fps, format]
   );
   const timeline = useMemo(() => buildTimeline(props), [props]);
   const total = timeline.durationInFrames;
@@ -550,7 +558,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   const colorOf = (id: string) => colorForKey(sources.findIndex((s) => s.id === id) + 1);
   const activeId = activeSourceAt(frame);
   const activeSource = sources.find((s) => s.id === activeId) ?? null;
-  const audioSource = sources.find((s) => s.id === audioSourceId) ?? sources[0];
+  const audioSource = sources.find((s) => s.id === chosenAudioId) ?? sources[0];
 
   return (
     <div className="edit-page">
@@ -571,13 +579,10 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
         <span className="spacer" />
         <label className="field">
           audio
-          <select
-            value={audioSourceId ?? ''}
-            onChange={(e) => setAudioSourceId(e.target.value || null)}
-          >
+          <select value={chosenAudioId ?? ''} onChange={(e) => setAudioSourceId(e.target.value)}>
             {sources.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.id}
+                {carriesAudio(s) ? s.id : `${s.id} (silent)`}
               </option>
             ))}
           </select>

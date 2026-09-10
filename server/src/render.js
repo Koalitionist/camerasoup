@@ -26,11 +26,13 @@ export function propsFromManifest(manifest, baseUrl) {
       recordStart: s.recordStart,
       duration: s.duration,
       rotation: s.rotation ?? 0,
+      hasAudio: s.hasAudio,
     }));
   return {
     sources,
     cuts: manifest.cuts ?? [],
-    audioSourceId: manifest.audioSource ?? sources[0]?.id ?? null,
+    audioSourceId:
+      manifest.audioSource ?? sources.find((s) => s.hasAudio !== false)?.id ?? sources[0]?.id ?? null,
     fps: manifest.fps ?? 30,
   };
 }

@@ -42,6 +42,11 @@ interface Source {
   name: string;
   kind: SourceKind;
   rotation: number;
+  // Whether this source's recording will carry sound. A screen share only
+  // does when the user ticked the picker's audio box, so it is per-source
+  // and not implied by the kind. Undefined where the source hasn't said —
+  // an older camera bundle — which is not the same as silent.
+  hasAudio?: boolean;
   caps: CameraCaps | null;
   zoom?: number;
   torch?: boolean;
@@ -233,6 +238,7 @@ export class Hub {
       // phone still calls itself "side", but you called it something else.
       src.name = nameFor(id) ?? m.name ?? id;
       src.rotation = Number(m.rotation) || 0;
+      src.hasAudio = m.hasAudio;
       src.caps = m.caps ?? null;
       src.online = true;
       src.peerId = peerId;
@@ -327,6 +333,7 @@ export class Hub {
       name,
       kind,
       rotation: 0,
+      hasAudio: undefined,
       caps: null,
       online: true,
       state: 'live',
@@ -366,6 +373,7 @@ export class Hub {
     let id = slugify(name);
     while (this.sources.has(id)) id = `${id}-2`;
     const src = this.blankSource(id, name, kind);
+    src.hasAudio = stream.getAudioTracks().length > 0;
     src.local = { stream, recorder: null, cleanup };
     src.stream = stream;
     src.track = stream.getVideoTracks()[0] ?? null;
@@ -380,6 +388,11 @@ export class Hub {
       });
     }
     this.sources.set(id, src);
+    // Sound is the one thing about a screen share you cannot see on the
+    // monitor, and finding out in the editor is finding out too late.
+    if (kind === 'local-screen' && src.hasAudio === false) {
+      this.showToast(`${name} has no audio — re-share and tick “Share tab audio” for sound`);
+    }
     for (const control of this.controls.values()) this.forwardTo(control, src);
     if (!this.program) this.program = id;
     this.emit();
@@ -494,6 +507,7 @@ export class Hub {
         name: src.name,
         kind: src.kind,
         rotation: src.rotation,
+        hasAudio: src.hasAudio,
         file: null,
         status: 'recording',
         recordStart: null,

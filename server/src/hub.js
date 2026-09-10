@@ -159,6 +159,7 @@ export class Hub {
       name: msg.name || id,
       kind: msg.kind || 'remote',
       rotation: Number(msg.rotation) || 0,
+      hasAudio: msg.hasAudio, // undefined = the source didn't say
       caps: msg.caps ?? null,
       ws,
     });
@@ -234,6 +235,8 @@ export class Hub {
         name: src.name,
         kind: src.kind,
         rotation: src.rotation ?? 0,
+        // Provisional: finalizeSource overwrites this from the probed file.
+        hasAudio: src.hasAudio,
         file: null,
         status: 'recording',
         recordStart: null,

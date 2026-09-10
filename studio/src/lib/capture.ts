@@ -106,6 +106,7 @@ export class CaptureSource {
         name: this.name,
         kind: this.kind,
         rotation: this.rotation,
+        hasAudio: this.stream.getAudioTracks().length > 0,
         caps: this.caps as unknown as Record<string, unknown>,
       });
     });
@@ -426,11 +427,29 @@ export async function openWebcam(deviceId?: string): Promise<MediaStream> {
   });
 }
 
+// Asking for audio is what puts the audio checkbox in Chrome's picker; the
+// user still has to tick it. On macOS it is offered for a shared *tab* only
+// ("Share tab audio"); Windows and ChromeOS also offer the whole system's
+// audio when sharing a screen. Unticked, or on a browser that doesn't do
+// display audio at all, the stream simply comes back video-only — the
+// recording is then silent, which the editor labels rather than hides.
+//
+// The three processing flags are voice tuning. Left on, they gate and pump
+// music and film audio, which is most of what a shared tab is playing.
 export async function openScreen(): Promise<MediaStream> {
-  return navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: { ideal: 30 } },
-    audio: false,
-  });
+  const video = { frameRate: { ideal: 30 } };
+  try {
+    return await navigator.mediaDevices.getDisplayMedia({
+      video,
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
+  } catch (err) {
+    // A cancelled picker must not reopen; only a browser that choked on the
+    // audio constraints is worth a second, video-only ask.
+    const name = (err as Error).name;
+    if (name === 'NotAllowedError' || name === 'AbortError') throw err;
+    return navigator.mediaDevices.getDisplayMedia({ video, audio: false });
+  }
 }
 
 // Longest side of a normalized screen capture. The finished video is

@@ -26,7 +26,16 @@ export type AutoStatus = 'off' | 'loading' | 'on' | 'error';
 export type Framing = 'social' | 'landscape';
 
 export type CameraToHub =
-  | { type: 'hello'; name: string; kind: 'remote'; rotation: number; caps: CameraCaps | null }
+  | {
+      type: 'hello';
+      name: string;
+      kind: 'remote';
+      rotation: number;
+      // Optional: a camera page on an older bundle doesn't send it, and
+      // absent has to mean "unknown" rather than "silent".
+      hasAudio?: boolean;
+      caps: CameraCaps | null;
+    }
   | { type: 'ping'; t0: number }
   | {
       type: 'recording-started';

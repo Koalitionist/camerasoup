@@ -106,6 +106,9 @@ export interface ManifestSource {
   name: string;
   kind: string;
   rotation: number;
+  // Undefined on sessions recorded before this was tracked: unknown, which
+  // the editor reads as "assume there is sound" rather than as silence.
+  hasAudio?: boolean;
   grade?: Grade; // colour correction; the footage itself is never touched
   file: string | null;
   status: 'recording' | 'finalized' | 'failed';

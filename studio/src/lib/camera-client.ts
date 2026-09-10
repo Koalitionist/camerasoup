@@ -209,6 +209,7 @@ export class CameraClient {
       name: this.name,
       kind: 'remote',
       rotation: this.rotation,
+      hasAudio: this.stream.getAudioTracks().length > 0,
       caps: this.caps,
     } satisfies CameraToHub);
     window.clearInterval(this.pingTimer);

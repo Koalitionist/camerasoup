@@ -59,10 +59,12 @@ function editFromManifest(manifest) {
       recordStart: s.recordStart,
       duration: s.duration,
       rotation: s.rotation ?? 0,
+      hasAudio: s.hasAudio,
     }));
   const fps = manifest.fps ?? 30;
   const timeline = buildTimeline({ sources, cuts: manifest.cuts ?? [], fps });
-  const audioId = manifest.audioSource ?? sources[0]?.id ?? null;
+  const audioId =
+    manifest.audioSource ?? sources.find((s) => s.hasAudio !== false)?.id ?? sources[0]?.id ?? null;
   return { sources, fps, timeline, audio: sources.find((s) => s.id === audioId) ?? sources[0] };
 }
 
@@ -100,10 +102,18 @@ function buildArgs(manifest, format, encoder, displayRotations) {
     concatIns.push(`[s${i}]`);
   });
 
-  // The audio source runs continuously across cuts.
+  // The audio source runs continuously across cuts. A source can legitimately
+  // have no sound — a screen share where the picker's audio box went unticked —
+  // and mapping [n:a] from a file with no audio stream fails the whole render,
+  // so silence is fed in explicitly instead.
   const audioIdx = timeline.segments.length;
-  const audioStart = (timeline.trim[audio.id] ?? 0) / fps;
-  args.push('-ss', audioStart.toFixed(3), '-t', totalSec.toFixed(3), '-i', path.join(dir, audio.file));
+  const silent = audio.hasAudio === false;
+  if (silent) {
+    args.push('-f', 'lavfi', '-t', totalSec.toFixed(3), '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000');
+  } else {
+    const audioStart = (timeline.trim[audio.id] ?? 0) / fps;
+    args.push('-ss', audioStart.toFixed(3), '-t', totalSec.toFixed(3), '-i', path.join(dir, audio.file));
+  }
 
   filters.push(`${concatIns.join('')}concat=n=${timeline.segments.length}:v=1:a=0[v]`);
   filters.push(`[${audioIdx}:a]aresample=48000,apad[a]`);

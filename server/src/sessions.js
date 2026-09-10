@@ -96,5 +96,8 @@ export async function finalizeSource(id, sourceId) {
     width: video?.width ?? null,
     height: video?.height ?? null,
     duration: Number(finalInfo.format?.duration ?? 0),
+    // The file itself is the last word on whether this source has sound: a
+    // screen share only carries it if the user ticked the picker's box.
+    hasAudio: finalInfo.streams.some((s) => s.codec_type === 'audio'),
   };
 }

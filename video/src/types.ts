@@ -6,6 +6,7 @@ export interface EditSource {
   duration: number; // seconds
   rotation?: number; // 0 | 90 | 180 | 270, clockwise
   grade?: Grade; // colour correction, applied on every draw
+  hasAudio?: boolean; // undefined on older sessions: unknown, not silent
 }
 
 export interface Cut {
