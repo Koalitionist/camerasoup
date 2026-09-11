@@ -155,6 +155,42 @@ export function drawGraded(
   ctx.restore();
 }
 
+// Named looks, in place of four sliders per angle. A preset is nothing but a
+// Grade with a name on it, so the manifest, the monitor and both renderers
+// keep working unchanged — and Match can still land on a grade no preset
+// describes, which reads back as "graded" rather than as one of these.
+export interface GradePreset {
+  id: string;
+  label: string;
+  grade: Grade;
+}
+
+export const GRADE_PRESETS: GradePreset[] = [
+  // Rescues an angle shot into a dark room; the old Exposure slider's job.
+  { id: 'bright', label: 'Bright', grade: { brightness: 1.22, contrast: 0.96, saturation: 1.05, gain: [1, 1, 1] } },
+  { id: 'warm', label: 'Warm', grade: { brightness: 1.02, contrast: 1.04, saturation: 1.08, gain: [1.06, 1, 0.93] } },
+  { id: 'cool', label: 'Cool', grade: { brightness: 1, contrast: 1.06, saturation: 1, gain: [0.94, 0.99, 1.07] } },
+  { id: 'punch', label: 'Punch', grade: { brightness: 1, contrast: 1.2, saturation: 1.3, gain: [1, 1, 1] } },
+  { id: 'mono', label: 'Mono', grade: { brightness: 1.03, contrast: 1.12, saturation: 0, gain: [1, 1, 1] } },
+];
+
+// Floating point, and a grade can arrive from a manifest written by an older
+// build, so presets are recognised by proximity rather than by equality.
+function sameGrade(a: Grade, b: Grade): boolean {
+  const near = (x: number, y: number) => Math.abs(x - y) < 0.005;
+  return (
+    near(a.brightness, b.brightness) &&
+    near(a.contrast, b.contrast) &&
+    near(a.saturation, b.saturation) &&
+    a.gain.every((g, i) => near(g, b.gain[i]))
+  );
+}
+
+export function presetFor(grade?: Grade | null): GradePreset | null {
+  if (isNeutral(grade)) return null;
+  return GRADE_PRESETS.find((p) => sameGrade(p.grade, grade!)) ?? null;
+}
+
 export interface ColorStats {
   mean: [number, number, number];
   luma: { mean: number; std: number };

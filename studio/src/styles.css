@@ -1712,10 +1712,11 @@ button.big {
   bottom: 0;
   z-index: 3;
   display: none;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: rgba(11, 11, 12, 0.82);
 }
 
@@ -1723,19 +1724,15 @@ button.big {
   display: flex;
 }
 
-.angle-grade label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--dim);
+/* The open panel says which look is on, so the chip would only show through
+   it as a ghost. */
+.angle:hover .angle-graded {
+  display: none;
 }
 
-.angle-grade input[type='range'] {
-  width: 76px;
-}
-
+/* One row of looks rather than four sliders: the angles are thumbnails, and
+   nobody dials a curve on a 300px preview — they pick the one that matches
+   the room. */
 .angle-grade button {
   border-radius: 999px;
   border: 1px solid var(--dashed);
@@ -1743,11 +1740,17 @@ button.big {
   background: transparent;
   font-size: 12px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 5px 11px;
 }
 
 .angle-grade button:hover {
   background: var(--text);
+  color: var(--bg);
+}
+
+.angle-grade button.on {
+  background: var(--text);
+  border-color: var(--text);
   color: var(--bg);
 }
 
@@ -2085,4 +2088,45 @@ button.big {
   .spine-body h1 {
     font-size: 28px;
   }
+}
+
+/* A rendered file, played where it was made. The browser has no route to the
+   Finder, so the answer to "where did it go" is to show it. */
+.preview-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(11, 11, 12, 0.86);
+}
+
+.preview-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 92vw;
+  max-height: 92vh;
+}
+
+/* Height-led: a 4:5 and a 9:16 of the same take should open the same height
+   and differ in width, which is how you compare two crops of one render. */
+.preview-box video {
+  height: min(calc(92vh - 48px), 760px);
+  width: auto;
+  max-width: 92vw;
+  border-radius: 14px;
+  background: #000;
+}
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
 }

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Grade } from '../../../video/src/types';
 import {
   buildTimeline,
-  NEUTRAL,
   drawGraded,
   isNeutral,
   gradeFilter,
   gradeTint,
+  GRADE_PRESETS,
   matchGrade,
+  presetFor,
   statsFrom,
   Cut,
   EditSource,
@@ -20,7 +21,7 @@ import { pickRootFolder } from '../lib/folder';
 import { isHosted } from '../lib/platform';
 import { colorForKey, textOn } from '../lib/theme';
 import type { RenderProgress } from '../lib/render-browser';
-import { Manifest, SessionStore, getStore } from '../lib/session-store';
+import { Manifest, SessionStore, getStore, isFolderStore } from '../lib/session-store';
 import { Json, StudioSocket } from '../lib/ws';
 
 export default function Edit() {
@@ -311,6 +312,32 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   // the shared screen, and picking it would render a silent film.
   const chosenAudioId =
     audioSourceId ?? sources.find(carriesAudio)?.id ?? sources[0]?.id ?? null;
+  // The finished file, played in place. A browser tab cannot open Finder, so
+  // "where did it go" is answered by showing the thing itself.
+  const [preview, setPreview] = useState<{ file: string; url: string; own: boolean } | null>(null);
+  const closePreview = useCallback(() => {
+    setPreview((p) => {
+      if (p?.own) URL.revokeObjectURL(p.url);
+      return null;
+    });
+  }, []);
+  const openPreview = useCallback(
+    async (file: string) => {
+      closePreview();
+      // A path on the local server can be played straight; the folder store
+      // has to hand over a blob, and this one is revoked here rather than in
+      // releaseUrls, which belongs to the angle sources.
+      if (store.kind === 'server') {
+        setPreview({ file, url: await store.urlFor(manifest.id, file), own: false });
+      } else {
+        const blob = await store.fileFor(manifest.id, file);
+        setPreview({ file, url: URL.createObjectURL(blob), own: true });
+      }
+    },
+    [closePreview, manifest.id, store]
+  );
+  useEffect(() => closePreview, [closePreview]);
+
   const [format, setFormat] = useState<FilmFormat>('4:5');
   // Landscape is off by default: it is a third encode, and most takes here are
   // going somewhere vertical.
@@ -670,12 +697,39 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
 
       {render.state === 'done' && (
         <div className="banner">
-          Rendered {(render.files ?? []).join(' and ')} into the session folder.
+          Rendered into {isFolderStore(store) ? `${store.folderName}/${manifest.id}` : 'the session folder'}.
+          {(render.files ?? []).map((file) => (
+            <button key={file} className="pill ghost small" onClick={() => void openPreview(file)}>
+              ▶ {file}
+            </button>
+          ))}
           {store.kind === 'server' && (
             <button className="pill ghost small" onClick={() => void store.reveal(manifest.id)}>
               Reveal
             </button>
           )}
+        </div>
+      )}
+
+      {preview && (
+        <div className="preview-scrim" onClick={closePreview}>
+          <div className="preview-box" onClick={(e) => e.stopPropagation()}>
+            {/* Shaped from the file name so the box opens at the right size
+                instead of snapping from 300x150 when metadata arrives. */}
+            <video
+              src={preview.url}
+              style={{ aspectRatio: aspectOf(preview.file) }}
+              controls
+              autoPlay
+              playsInline
+            />
+            <div className="preview-bar">
+              <span>{preview.file}</span>
+              <button className="pill ghost small" onClick={closePreview}>
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {render.state === 'error' && <div className="banner error">Render failed: {render.message}</div>}
@@ -903,6 +957,7 @@ function AngleTile({
   onMatchTo: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const preset = presetFor(grade);
 
   // Keep the angle preview synced to the program playhead: exact while
   // paused/seeking, drift-corrected while playing.
@@ -966,56 +1021,33 @@ function AngleTile({
         Match
       </button>
       {/* Otherwise a corrected angle looks exactly like an untouched one, and
-          there is no way to tell what you have already changed. */}
-      {!isNeutral(grade) && <span className="angle-graded">graded</span>}
+          there is no way to tell what you have already changed. A grade that
+          came from Match fits no preset, and says so. */}
+      {!isNeutral(grade) && (
+        <span className="angle-graded">{preset?.label.toLowerCase() ?? 'graded'}</span>
+      )}
       <div className="angle-grade" onClick={(e) => e.stopPropagation()}>
-        {GRADE_SLIDERS.map(({ key, label, min, max }) => (
-          <label key={key}>
-            <span>{label}</span>
-            <input
-              type="range"
-              min={min}
-              max={max}
-              step={0.01}
-              value={(grade ?? NEUTRAL)[key]}
-              onChange={(e) =>
-                onGrade({ ...(grade ?? NEUTRAL), [key]: Number(e.target.value) })
-              }
-            />
-          </label>
+        <button className={isNeutral(grade) ? 'on' : ''} onClick={() => onGrade(null)}>
+          None
+        </button>
+        {GRADE_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            className={preset?.id === p.id ? 'on' : ''}
+            onClick={() => onGrade(p.grade)}
+          >
+            {p.label}
+          </button>
         ))}
-        <label>
-          <span>Warmth</span>
-          <input
-            type="range"
-            min={-0.5}
-            max={0.5}
-            step={0.01}
-            value={warmthOf(grade ?? NEUTRAL)}
-            onChange={(e) => onGrade(withWarmth(grade ?? NEUTRAL, Number(e.target.value)))}
-          />
-        </label>
-        {!isNeutral(grade) && <button onClick={() => onGrade(null)}>Reset</button>}
       </div>
     </div>
   );
 }
 
-const GRADE_SLIDERS = [
-  { key: 'brightness', label: 'Exposure', min: 0.4, max: 2.5 },
-  { key: 'contrast', label: 'Contrast', min: 0.5, max: 2 },
-  { key: 'saturation', label: 'Saturation', min: 0, max: 2 },
-] as const;
-
-// Warmth is the red/blue half of the gain, shown as one control. An auto-match
-// can set a gain no single slider describes, so this reads back what it can
-// and leaves green where the match put it.
-function warmthOf(grade: Grade): number {
-  return (grade.gain[0] - grade.gain[2]) / 2;
-}
-
-function withWarmth(grade: Grade, warmth: number): Grade {
-  return { ...grade, gain: [1 + warmth, grade.gain[1], 1 - warmth] };
+// out-4x5.mp4, out-9x16.mp4, out-16x9.mp4 — the render names its own shape.
+function aspectOf(file: string): string {
+  const m = /out-(\d+)x(\d+)/.exec(file);
+  return m ? `${m[1]} / ${m[2]}` : '4 / 5';
 }
 
 function Timeline({
