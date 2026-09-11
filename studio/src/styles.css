@@ -1,7 +1,7 @@
 /* camerasoup — direction 2a "Poster + pills".
    Swiss-poster look: a lowercase wordmark down the left spine, Helvetica
    Neue throughout, warm white for the public pages and near-black for the
-   studio, and one saturated colour per camera angle. Every colour block is
+   studio, and one saturated color per camera angle. Every color block is
    a half-pill; every panel, button and tag is rounded. */
 
 * {
@@ -534,7 +534,7 @@ button.big:hover:not(:disabled) {
   opacity: 0.75;
 }
 
-/* a colour-edged panel: the left edge is a half-pill in the state colour */
+/* a color-edged panel: the left edge is a half-pill in the state color */
 .edged {
   position: relative;
   border-radius: 24px;
@@ -1327,7 +1327,7 @@ button.big:hover:not(:disabled) {
   opacity: 0.8;
 }
 
-/* ---- name gate / centred cards ------------------------------------------ */
+/* ---- name gate / centered cards ------------------------------------------ */
 
 .center-card {
   margin: auto;
@@ -1623,7 +1623,7 @@ button.big {
 }
 
 /* The thumbnail's own grade. The gain is a multiply pass on canvas, which a
-   <video> cannot do, so the preview overlays the same colour instead — close
+   <video> cannot do, so the preview overlays the same color instead — close
    enough to judge by, while the program monitor and the render are exact. */
 /* Which formats get written. Toggles rather than a multi-select: there are
    three, and you want to see all of them at once. */
@@ -1652,7 +1652,7 @@ button.big {
   opacity: 0.45;
 }
 
-/* Attached to the checklist it belongs to, and coloured like a failure
+/* Attached to the checklist it belongs to, and colored like a failure
    without being a whole card about it. */
 .step-problem {
   margin-top: 4px;
@@ -1671,7 +1671,7 @@ button.big {
 }
 
 /* Beside the rotate control, and visible without hovering: matching is the
-   whole point of the colour feature and was hiding in a panel. */
+   whole point of the color feature and was hiding in a panel. */
 .angle-match {
   position: absolute;
   right: 56px;
@@ -1800,7 +1800,7 @@ button.big {
   border-radius: 0 40px 40px 0;
 }
 
-/* The cut itself: a hard edge between two colours, not a gap. */
+/* The cut itself: a hard edge between two colors, not a gap. */
 .timeline .seg + .seg {
   box-shadow: inset 2px 0 0 var(--bg);
 }

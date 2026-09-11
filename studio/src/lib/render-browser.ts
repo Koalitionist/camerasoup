@@ -72,7 +72,7 @@ export async function renderSession(opts: {
       if (!ctx) throw new Error('could not open a 2D canvas');
 
       // The sink only rotates, at the angle's own resolution; the fit into
-      // the output frame is done here with the same centre-cover maths the
+      // the output frame is done here with the same center-cover maths the
       // editor's program monitor uses, so the preview and the file agree.
       const sinks = new Map<string, CanvasSink>();
       for (const source of props.sources) {

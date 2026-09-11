@@ -5,7 +5,7 @@ export interface EditSource {
   recordStart: number; // server-clock ms when this source's recorder started
   duration: number; // seconds
   rotation?: number; // 0 | 90 | 180 | 270, clockwise
-  grade?: Grade; // colour correction, applied on every draw
+  grade?: Grade; // color correction, applied on every draw
   hasAudio?: boolean; // undefined on older sessions: unknown, not silent
 }
 
@@ -81,7 +81,7 @@ export function buildTimeline(props: FilmProps): Timeline {
   return { durationInFrames, trim, segments };
 }
 
-// ---- colour ---------------------------------------------------------------
+// ---- color ---------------------------------------------------------------
 //
 // A grade is data, like the cuts: the footage stays untouched and the look is
 // re-applied on every draw. Both ends that draw a frame — the editor's program
@@ -112,7 +112,7 @@ export function isNeutral(grade?: Grade | null): boolean {
   );
 }
 
-// A multiply pass can only take light away, so the gains are normalised to a
+// A multiply pass can only take light away, so the gains are normalized to a
 // maximum of one and the difference is handed to brightness. Same result, and
 // it survives a channel that wants boosting.
 export function gradeFilter(grade: Grade): string {
@@ -175,7 +175,7 @@ export const GRADE_PRESETS: GradePreset[] = [
 ];
 
 // Floating point, and a grade can arrive from a manifest written by an older
-// build, so presets are recognised by proximity rather than by equality.
+// build, so presets are recognized by proximity rather than by equality.
 function sameGrade(a: Grade, b: Grade): boolean {
   const near = (x: number, y: number) => Math.abs(x - y) < 0.005;
   return (
@@ -235,14 +235,14 @@ export function statsFrom(source: CanvasImageSource): ColorStats | null {
   };
 }
 
-// Map one camera onto another: per-channel gain carries the colour balance,
-// contrast comes from the spread of luma and brightness from its centre, and
-// saturation from how much colour each camera claims to see. Every term is
+// Map one camera onto another: per-channel gain carries the color balance,
+// contrast comes from the spread of luma and brightness from its center, and
+// saturation from how much color each camera claims to see. Every term is
 // clamped, because a frame that happened to be mostly wall should nudge the
 // look, not invent one.
 export function matchGrade(sample: ColorStats, reference: ColorStats): Grade {
   const ratios = sample.mean.map((m, i) => (m > 1 ? reference.mean[i] / m : 1));
-  // Normalised to average one, so gain is pure colour balance and the
+  // Normalized to average one, so gain is pure color balance and the
   // exposure it would otherwise smuggle in is left to brightness.
   const average = (ratios[0] + ratios[1] + ratios[2]) / 3 || 1;
   const gain = ratios.map((r) => clamp(r / average, 0.5, 2)) as [number, number, number];

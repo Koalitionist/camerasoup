@@ -647,10 +647,10 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
         {Object.keys(grades).length > 0 && (
           <button
             className="pill ghost small"
-            title="Clear the colour correction on every angle"
+            title="Clear the color correction on every angle"
             onClick={() => setGrades({})}
           >
-            Reset colour
+            Reset color
           </button>
         )}
         {render.state === 'running' ? (

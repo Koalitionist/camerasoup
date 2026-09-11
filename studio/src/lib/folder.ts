@@ -109,7 +109,7 @@ export interface ManifestSource {
   // Undefined on sessions recorded before this was tracked: unknown, which
   // the editor reads as "assume there is sound" rather than as silence.
   hasAudio?: boolean;
-  grade?: Grade; // colour correction; the footage itself is never touched
+  grade?: Grade; // color correction; the footage itself is never touched
   file: string | null;
   status: 'recording' | 'finalized' | 'failed';
   recordStart: number | null; // hub-clock ms when the recorder started

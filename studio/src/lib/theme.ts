@@ -1,6 +1,6 @@
-// One saturated colour per camera angle, indexed by the hub's key number.
+// One saturated color per camera angle, indexed by the hub's key number.
 // Carried through the camera spines, tag pills, program outline and timeline
-// so an angle is the same colour everywhere you look at it.
+// so an angle is the same color everywhere you look at it.
 export const ANGLE_COLORS = [
   '#1F6FE5', // 1 blue
   '#FFC61A', // 2 yellow
@@ -20,7 +20,7 @@ export function colorForKey(keyNumber: number): string {
   return ANGLE_COLORS[i % ANGLE_COLORS.length];
 }
 
-/** Black on the light colours, white on the rest. */
+/** Black on the light colors, white on the rest. */
 export function textOn(hex: string): string {
   const n = parseInt(hex.slice(1), 16);
   const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);

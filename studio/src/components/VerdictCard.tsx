@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CheckReport } from '../lib/check';
 
 // The verdict, shown identically on the computer and the phone: a rounded
-// panel with a half-pill edge in the state colour. Copy gives the full
+// panel with a half-pill edge in the state color. Copy gives the full
 // report as JSON — the thing to paste into a bug report.
 export default function VerdictCard({
   report,

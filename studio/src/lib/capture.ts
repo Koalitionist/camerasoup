@@ -381,7 +381,7 @@ export function fakeStream(label = 'test', width = 1280, height = 720): MediaStr
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
   let i = 0;
-  // A centred square, the only pure-white thing in the frame, so a test can
+  // A centered square, the only pure-white thing in the frame, so a test can
   // measure it in the rendered file: cover-fitting keeps it square, a
   // stretch does not.
   const side = Math.round(Math.min(canvas.width, canvas.height) * 0.5);
