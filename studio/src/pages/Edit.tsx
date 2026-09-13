@@ -894,6 +894,56 @@ function ProgramCanvas({
 }
 
 // One continuous audio track, synced to the transport like the angle tiles.
+// The Mac records through MediaRecorder, which writes a live WebM: no Cues,
+// no SeekHead, no duration in the container. Chrome plays such a file happily
+// but reports an infinite duration and seeks it by scanning, so every sync
+// correction stalls it — that angle freezes, and the program monitor with it,
+// while the phones' mp4s roll on. (The local app never sees this: its ffmpeg
+// remux on finalize puts the index back.)
+//
+// Seeking once past any possible end makes Chrome scan to the real one, settle
+// the duration and build what it needs to seek; afterwards the element behaves
+// like any other. Callers hold their own syncing off until it has.
+function usePrimedSeeking(ref: React.RefObject<HTMLMediaElement | null>, src: string) {
+  const [primed, setPrimed] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setPrimed(false);
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      el.removeEventListener('timeupdate', finish);
+      el.removeEventListener('seeked', finish);
+      el.currentTime = 0;
+      setPrimed(true);
+    };
+    const start = () => {
+      if (Number.isFinite(el.duration)) {
+        setPrimed(true);
+        return;
+      }
+      el.addEventListener('timeupdate', finish);
+      el.addEventListener('seeked', finish);
+      // Not a real time: it asks Chrome "where does this actually end?"
+      el.currentTime = 1e101;
+      // A file too damaged to answer must not hold the element hostage.
+      window.setTimeout(finish, 5000);
+    };
+    if (el.readyState >= 1) start();
+    else el.addEventListener('loadedmetadata', start, { once: true });
+    return () => {
+      settled = true;
+      el.removeEventListener('loadedmetadata', start);
+      el.removeEventListener('timeupdate', finish);
+      el.removeEventListener('seeked', finish);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
+  return primed;
+}
+
 function AudioTrack({
   src,
   trim,
@@ -908,10 +958,13 @@ function AudioTrack({
   playing: boolean;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
+  // The audio source can be the same live WebM as an angle, and stalls the
+  // same way — the film then plays to a silence that never recovers.
+  const primed = usePrimedSeeking(ref, src);
 
   useEffect(() => {
     const a = ref.current;
-    if (!a) return;
+    if (!a || !primed) return;
     const target = (frame + trim) / fps;
     if (playing) {
       if (a.paused) void a.play().catch(() => {});
@@ -920,7 +973,7 @@ function AudioTrack({
       if (!a.paused) a.pause();
       if (Math.abs(a.currentTime - target) > 0.05) a.currentTime = target;
     }
-  }, [frame, playing, trim, fps]);
+  }, [frame, playing, trim, fps, primed]);
 
   return <audio ref={ref} src={src} preload="auto" />;
 }
@@ -959,20 +1012,42 @@ function AngleTile({
   const videoRef = useRef<HTMLVideoElement>(null);
   const preset = presetFor(grade);
 
+  const primed = usePrimedSeeking(videoRef, source.src);
+
   // Keep the angle preview synced to the program playhead: exact while
   // paused/seeking, drift-corrected while playing.
+  //
+  // A seek costs however far it is back to the previous keyframe, and
+  // playback is stalled for all of it — 3.4s apart on a MacBook webcam
+  // recording against 1s on a phone's, because MediaRecorder picks the
+  // interval and won't be told otherwise. Correcting on every frame tick
+  // therefore feeds itself on the slow angle: the correction lands later
+  // than the threshold allows, so it needs another, which cancels the
+  // first, and that angle sits seeking forever while the others play.
+  //
+  // Hence: never a second correction while one is in flight, a cooldown
+  // long enough for the element to make real progress, and a threshold
+  // wider than a seek costs, so landing from one does not ask for the
+  // next. Half a second of lag on a preview is invisible; a frozen angle
+  // is not. Paused is still exact, which is what judging a cut needs.
+  const lastCorrection = useRef(0);
   useEffect(() => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !primed) return;
     const target = (frame + trim) / fps;
     if (playing) {
       if (v.paused) void v.play().catch(() => {});
-      if (Math.abs(v.currentTime - target) > 0.2) v.currentTime = target;
+      const now = performance.now();
+      if (v.seeking || now - lastCorrection.current < CORRECTION_COOLDOWN_MS) return;
+      if (Math.abs(v.currentTime - target) > PLAYING_DRIFT_S) {
+        lastCorrection.current = now;
+        v.currentTime = target;
+      }
     } else {
       if (!v.paused) v.pause();
       if (Math.abs(v.currentTime - target) > 1 / fps) v.currentTime = target;
     }
-  }, [frame, playing, trim, fps]);
+  }, [frame, playing, trim, fps, primed]);
 
   return (
     <div
@@ -1043,6 +1118,11 @@ function AngleTile({
     </div>
   );
 }
+
+// Wider than a long-GOP seek costs, so arriving from one correction does not
+// immediately trigger the next.
+const PLAYING_DRIFT_S = 0.5;
+const CORRECTION_COOLDOWN_MS = 1000;
 
 // out-4x5.mp4, out-9x16.mp4, out-16x9.mp4 — the render names its own shape.
 function aspectOf(file: string): string {
