@@ -34,6 +34,11 @@ export interface SessionStore {
   releaseUrls(): void;
   /** Writes a finished render next to the footage. */
   writeOutput(id: string, name: string, data: Blob): Promise<void>;
+  /**
+   * Swaps one source's file for a repaired one and points the manifest at it.
+   * The old file goes only once the new one is written and recorded.
+   */
+  replaceSourceFile(id: string, sourceId: string, name: string, data: Blob): Promise<void>;
   reveal(id: string): Promise<void>;
   /** Permanent: the File System Access API has no route to the OS trash. */
   remove(id: string): Promise<void>;
@@ -79,6 +84,10 @@ class ServerStore implements SessionStore {
 
   async writeOutput() {
     throw new Error('the local app renders through the server');
+  }
+
+  async replaceSourceFile() {
+    // Nothing to repair: the server remuxes every source as it finalizes it.
   }
 
   async reveal(id: string) {
@@ -166,6 +175,25 @@ class FolderStore implements SessionStore {
     const w = await handle.createWritable();
     await w.write(data);
     await w.close();
+  }
+
+  async replaceSourceFile(id: string, sourceId: string, name: string, data: Blob) {
+    const dir = await this.dir(id);
+    const manifest = await readJson<Manifest>(dir, 'session.json');
+    const source = manifest?.sources.find((s) => s.id === sourceId);
+    if (!manifest || !source) throw new Error(`no source ${sourceId} in ${id}`);
+    const old = source.file;
+    const handle = await dir.getFileHandle(name, { create: true });
+    const w = await handle.createWritable();
+    await w.write(data);
+    await w.close();
+    source.file = name;
+    source.mimeType = data.type || 'video/mp4';
+    source.bytes = data.size;
+    await writeJson(dir, 'session.json', manifest);
+    // Only now: until the manifest points at the new file, the old one is
+    // still the only copy of the take.
+    if (old && old !== name) await dir.removeEntry(old).catch(() => {});
   }
 
   async reveal() {

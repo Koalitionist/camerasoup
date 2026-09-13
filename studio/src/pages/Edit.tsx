@@ -21,6 +21,7 @@ import { pickRootFolder } from '../lib/folder';
 import { isHosted } from '../lib/platform';
 import { colorForKey, textOn } from '../lib/theme';
 import type { RenderProgress } from '../lib/render-browser';
+import { mp4NameFor, needsRemux, remuxToMp4 } from '../lib/remux';
 import { Manifest, SessionStore, getStore, isFolderStore } from '../lib/session-store';
 import { Json, StudioSocket } from '../lib/ws';
 
@@ -92,7 +93,84 @@ export default function Edit() {
       </SpinePage>
     );
   }
-  return <Editor manifest={manifest} store={store!} />;
+  return <Repaired manifest={manifest} store={store!} onRepaired={setManifest} />;
+}
+
+// A session recorded by the browser studio holds whatever MediaRecorder
+// produced, and on the Mac that is a WebM the editor cannot seek — see
+// lib/remux.ts. The repair is a container copy, it happens once, and the
+// session then behaves like one recorded by the local app.
+function Repaired({
+  manifest,
+  store,
+  onRepaired,
+}: {
+  manifest: Manifest;
+  store: SessionStore;
+  onRepaired: (m: Manifest) => void;
+}) {
+  const todo = manifest.sources.filter((s) => s.status === 'finalized' && needsRemux(s.file));
+  const [progress, setProgress] = useState<{ name: string; at: number; done: number } | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!todo.length || store.kind !== 'folder') return;
+    let cancelled = false;
+    void (async () => {
+      for (const [i, source] of todo.entries()) {
+        try {
+          setProgress({ name: source.name || source.id, at: 0, done: i });
+          const blob = await store.fileFor(manifest.id, source.file!);
+          const mp4 = await remuxToMp4(blob, (at) => {
+            if (!cancelled) setProgress({ name: source.name || source.id, at, done: i });
+          });
+          if (cancelled) return;
+          await store.replaceSourceFile(manifest.id, source.id, mp4NameFor(source.file!), mp4);
+        } catch (err) {
+          if (!cancelled) setFailed(`${source.name || source.id}: ${(err as Error).message}`);
+          return;
+        }
+      }
+      const fresh = await store.load(manifest.id);
+      if (!cancelled && fresh) onRepaired(fresh);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manifest.id, store]);
+
+  if (failed) {
+    return (
+      <SpinePage>
+        <span className="meta">{manifest.id}</span>
+        <h1>This recording could not be repaired.</h1>
+        <p className="lede">{failed}</p>
+        <p className="hint">
+          The footage is untouched. Rendering still works; only scrubbing that angle does not.
+        </p>
+        <div className="actions-row">
+          <a href="/edit">
+            <button className="pill outline">← Sessions</button>
+          </a>
+        </div>
+      </SpinePage>
+    );
+  }
+  if (todo.length && store.kind === 'folder') {
+    const pct = Math.round(((progress?.done ?? 0) + (progress?.at ?? 0)) * (100 / todo.length));
+    return (
+      <SpinePage>
+        <span className="meta">{manifest.id}</span>
+        <h1>Getting {todo.length === 1 ? 'an angle' : `${todo.length} angles`} ready to scrub.</h1>
+        <p className="lede">
+          {progress?.name ?? todo[0].name ?? todo[0].id} — {pct}%. The frames are copied as they
+          are, not re-encoded, and this happens once per recording.
+        </p>
+      </SpinePage>
+    );
+  }
+  return <Editor manifest={manifest} store={store} />;
 }
 
 // A take is a dud if a source failed outright or nothing ran long enough to
