@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { Framing, HubSnapshot, SnapshotCamera } from '../lib/rtc-protocol';
 import { colorForKey, textOn } from '../lib/theme';
 
@@ -21,10 +21,16 @@ export interface ControlActions {
 // .mosaic's own gap, which the stacked arithmetic below has to agree with.
 const GAP = 6;
 
-// The shape the program monitor is framing for: the 4:5 render, or 16:9 for a
-// screen share and for the landscape cut.
-const programAspect = (cam: SnapshotCamera | null, framing: Framing) =>
-  cam && (cam.kind === 'local-screen' || framing === 'landscape') ? 16 / 9 : 4 / 5;
+// The shape the program monitor takes. A camera is framed for the render —
+// 4:5, or 16:9 for the landscape cut — because what ships is a crop of it.
+// A screen is shown whole, so it gets its own shape: a portrait display is
+// not a 16:9 one, and squeezed into that box it is a sliver with black
+// either side. `measured` is the source's real ratio once a frame has
+// arrived; 16:9 is only the guess that holds until then.
+const programAspect = (cam: SnapshotCamera | null, framing: Framing, measured?: number) => {
+  if (cam?.kind === 'local-screen') return measured ?? 16 / 9;
+  return framing === 'landscape' ? 16 / 9 : 4 / 5;
+};
 
 export default function ControlView({
   state,
@@ -92,6 +98,15 @@ export default function ControlView({
   }, []);
   const stacked = box.h > 0 && (box.w * 2) / (2 + cols) < box.h * (9 / 16);
 
+  // What each source's picture actually is, as opposed to what it was asked
+  // for. Only the program cell reads it, but any cell can report it.
+  const [mediaAspect, setMediaAspect] = useState<Record<string, number>>({});
+  const noteAspect = useCallback((id: string, ratio: number) => {
+    setMediaAspect((all) =>
+      Math.abs((all[id] ?? 0) - ratio) < 0.001 ? all : { ...all, [id]: ratio }
+    );
+  }, []);
+
   // Stacked, the strip is one row of 4:3 thumbnails and the program takes the
   // height that is left — but never more than its own shape needs, or it
   // would just crop the source harder. The arithmetic lives here rather than
@@ -101,7 +116,8 @@ export default function ControlView({
   const stripH = slots ? ((box.w - GAP * (scols - 1)) / scols) * (3 / 4) : 0;
   const programW = Math.min(
     box.w,
-    Math.max(0, box.h - (stripH ? stripH + GAP : 0)) * programAspect(program, state.framing),
+    Math.max(0, box.h - (stripH ? stripH + GAP : 0)) *
+      programAspect(program, state.framing, programId ? mediaAspect[programId] : undefined),
   );
 
   const cell = (cam: SnapshotCamera, big: boolean) => (
@@ -110,6 +126,7 @@ export default function ControlView({
       cam={cam}
       big={big}
       stackedWidth={big && stacked ? programW : null}
+      onMedia={noteAspect}
       color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
       canRemove={!recording && !big}
@@ -304,6 +321,7 @@ function Cell({
   cam,
   big,
   stackedWidth,
+  onMedia,
   color,
   stream,
   canRemove,
@@ -318,6 +336,7 @@ function Cell({
   cam: SnapshotCamera;
   big: boolean;
   stackedWidth: number | null; // set only on a stacked program cell
+  onMedia: (id: string, ratio: number) => void;
   color: string;
   stream: MediaStream | null;
   canRemove: boolean;
@@ -337,6 +356,31 @@ function Cell({
     if (el.srcObject !== stream) el.srcObject = stream;
     if (stream) void el.play().catch(() => {});
   }, [stream]);
+
+  // The track's own shape, kept here and reported up: it arrives with the
+  // first frame and changes again whenever a shared window is resized
+  // mid-take, so `loadedmetadata` alone is not enough. A quarter turn swaps
+  // the two sides.
+  const [ratio, setRatio] = useState<number | null>(null);
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const turn = ((((cam.rotation ?? 0) % 360) + 360) % 360);
+    const report = () => {
+      if (!el.videoWidth || !el.videoHeight) return;
+      const quarter = turn === 90 || turn === 270;
+      const r = quarter ? el.videoHeight / el.videoWidth : el.videoWidth / el.videoHeight;
+      setRatio(r);
+      onMedia(cam.id, r);
+    };
+    report();
+    el.addEventListener('loadedmetadata', report);
+    el.addEventListener('resize', report);
+    return () => {
+      el.removeEventListener('loadedmetadata', report);
+      el.removeEventListener('resize', report);
+    };
+  }, [stream, cam.id, cam.rotation, onMedia]);
 
   const buffering = cam.pendingBytes > 4 * 1024 * 1024;
   const className = [
@@ -360,7 +404,8 @@ function Cell({
               gridColumn: stackedWidth === null ? 1 : '1 / -1',
               gridRow: stackedWidth === null ? undefined : 1,
               width: stackedWidth === null ? undefined : stackedWidth,
-              aspectRatio: stackedWidth === null ? undefined : programAspect(cam, framing),
+              aspectRatio:
+                stackedWidth === null ? undefined : programAspect(cam, framing, ratio ?? undefined),
               outline: `4px solid ${color}`,
               outlineOffset: -4,
             }
