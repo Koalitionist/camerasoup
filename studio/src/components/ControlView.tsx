@@ -54,9 +54,12 @@ export default function ControlView({
   const live = !!recording && !finalizing;
   const order = cameras.map((c) => c.id);
 
-  // 1..9 drives the program: during a recording it cuts the show live.
+  // 1..9 drives the program: during a recording it cuts the show live. While
+  // the take is being written it does nothing — the cut list is closed, and
+  // the only thing left to do is let the files land.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (finalizing) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT') return;
       const idx = parseInt(e.key, 10);
@@ -65,8 +68,11 @@ export default function ControlView({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order.join(','), actions]);
+  }, [order.join(','), actions, finalizing]);
 
+  // Which cameras have not finished handing their footage over. This is the
+  // whole of the wait, so it is worth naming rather than spinning at.
+  const flushing = cameras.filter((c) => c.state === 'flushing');
   const programId = state.program ?? order[0] ?? null;
   const program = cameras.find((c) => c.id === programId) ?? null;
   const onlineCount = cameras.filter((c) => c.online).length;
@@ -129,9 +135,9 @@ export default function ControlView({
       onMedia={noteAspect}
       color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
-      canRemove={!recording && !big}
+      canRemove={!recording && !finalizing && !big}
       framing={state.framing}
-      onClick={() => actions.cut(cam.id)}
+      onClick={() => !finalizing && actions.cut(cam.id)}
       onRemove={() => actions.remove(cam.id)}
       onControl={(c) => actions.cameraControl(cam.id, c)}
       renaming={renaming === cam.id}
@@ -144,7 +150,7 @@ export default function ControlView({
   );
 
   return (
-    <div className="rail-page">
+    <div className={`rail-page${finalizing ? ' saving-take' : ''}`}>
       <div className="rail">
         <div className="rail-head">
           <span>camerasoup</span>
@@ -154,12 +160,16 @@ export default function ControlView({
             key={cam.id}
             cam={cam}
             color={colorForKey(cam.keyNumber)}
-            onCut={() => actions.cut(cam.id)}
+            onCut={() => !finalizing && actions.cut(cam.id)}
             onRename={() => setRenaming(cam.id)}
           />
         ))}
         {onAdd && (
-          <div className="rail-add" onClick={onAdd} title="Add a camera">
+          <div
+            className={`rail-add${finalizing ? ' locked' : ''}`}
+            onClick={() => !finalizing && onAdd()}
+            title={finalizing ? 'Wait for the take to save' : 'Add a camera'}
+          >
             +
           </div>
         )}
@@ -186,6 +196,7 @@ export default function ControlView({
           <span className="spacer" />
           <button
             className="pill ghost small"
+            disabled={!!finalizing}
             title="What the program monitor frames for: the social crops, or 16:9"
             onClick={() => actions.setFraming(state.framing === 'social' ? 'landscape' : 'social')}
           >
@@ -194,16 +205,21 @@ export default function ControlView({
           {cameras.length > 1 && (
             <button
               className={`pill ghost small auto-toggle${state.auto === 'on' ? ' on' : ''}`}
-              disabled={state.auto === 'loading'}
+              disabled={state.auto === 'loading' || !!finalizing}
               title="Cut to whichever camera the subject is facing. A manual switch pauses it for ten seconds."
               onClick={() => actions.setAuto(state.auto !== 'on')}
             >
               {state.auto === 'loading' ? 'auto…' : 'auto'}
             </button>
           )}
-          {recording && <RecTimer startedAt={recording.startedAt} />}
+          {recording && (
+            <RecTimer startedAt={recording.startedAt} stoppedAt={recording.stoppedAt} />
+          )}
           {finalizing ? (
-            <span className="meta">saving {finalizing}…</span>
+            <span className="saving">
+              <span className="saving-dot" />
+              saving{flushing.length ? ` — ${flushing.length} still flushing` : '…'}
+            </span>
           ) : recording ? (
             <button className="rec-button stop" onClick={actions.stop}>
               ■ Stop
@@ -303,15 +319,19 @@ function CamSpine({
   );
 }
 
-export function RecTimer({ startedAt }: { startedAt: number }) {
+// Counts while the camera rolls and stops where it stopped: once Stop is
+// pressed the number is the take's length, and a clock that keeps climbing
+// through the save is timing the disk, not the film.
+export function RecTimer({ startedAt, stoppedAt }: { startedAt: number; stoppedAt?: number | null }) {
   const [, force] = useState(0);
   useEffect(() => {
+    if (stoppedAt) return;
     const t = window.setInterval(() => force((n) => n + 1), 500);
     return () => window.clearInterval(t);
-  }, []);
-  const s = Math.max(0, (Date.now() - startedAt) / 1000);
+  }, [stoppedAt]);
+  const s = Math.max(0, ((stoppedAt ?? Date.now()) - startedAt) / 1000);
   return (
-    <span className="rec-timer">
+    <span className={`rec-timer${stoppedAt ? ' done' : ''}`}>
       {String(Math.floor(s / 60)).padStart(2, '0')}:{String(Math.floor(s % 60)).padStart(2, '0')}
     </span>
   );

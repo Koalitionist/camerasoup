@@ -785,6 +785,68 @@ button.big:hover:not(:disabled) {
   font-variant-numeric: tabular-nums;
 }
 
+/* While a take is being written the surface is read-only: a cut has nowhere
+   to go, a removed camera still owes us its footage, and every click is a
+   chance to lose the one thing that cannot be shot again. The page says so
+   rather than quietly ignoring the press. */
+.saving-take .mosaic,
+.saving-take .rail .cam-spine {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.saving-take .recordings a,
+.saving-take .recordings button {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.rail-add.locked {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.saving {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* The one thing on the page still doing something. */
+.saving-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--rec);
+  animation: saving-pulse 1s ease-in-out infinite;
+}
+
+@keyframes saving-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saving-dot {
+    animation: none;
+  }
+}
+
+/* Stopped: the number is the take's length now, not a clock still running. */
+.rec-timer.done {
+  color: var(--dim);
+}
+
 .rec-button {
   background: var(--rec);
   color: #fff;

@@ -95,7 +95,9 @@ export interface HubSnapshot {
   joinUrl: string;
   folder: string | null;
   cameras: SnapshotCamera[];
-  recording: { sessionId: string; startedAt: number } | null;
+  // `stoppedAt` is set the moment Stop was pressed: the take's clock has to
+  // freeze there, because everything after it is saving, not filming.
+  recording: { sessionId: string; startedAt: number; stoppedAt: number | null } | null;
   finalizing: string | null;
   program: string | null;
   auto: AutoStatus;

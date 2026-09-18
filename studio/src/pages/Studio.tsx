@@ -41,6 +41,19 @@ export default function Studio() {
 
   const [code] = useState(() => stickyRoomCode(new URLSearchParams(location.search).get('code')));
 
+  // A take lives in this tab until the last chunk is written: close it while
+  // the camera is rolling, or while the files are still landing, and what is
+  // left in the folder is a heap of .part files and a manifest that still
+  // says "recording" — which the editor can only show as an empty dud. The
+  // browser will not let us finish the write, so ask first.
+  const busy = !!state?.recording || !!state?.finalizing;
+  useEffect(() => {
+    if (!busy) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [busy]);
+
   // Keep the code in the URL as well as the tab's storage, so a reload or a
   // trip through the editor lands back in the same room either way.
   useEffect(() => {

@@ -91,11 +91,18 @@ interface ControlView {
   forwarded: Set<string>;
 }
 
+// How long a source may write nothing before the hub says so. A phone is
+// given longer than the Mac: it has a page to load, a recorder to start and
+// a first chunk to push over the network before anything can land.
+const LOCAL_SILENCE_MS = 5000;
+const REMOTE_SILENCE_MS = 8000;
+
 interface Recording {
   sessionId: string;
   dir: FileSystemDirectoryHandle;
   manifest: Manifest;
   startedAt: number;
+  stoppedAt: number | null;
   ids: string[];
   liveCuts: { atMs: number; sourceId: string }[];
   stopping: boolean;
@@ -452,17 +459,26 @@ export class Hub {
       this.emit();
     };
     recorder.start(1000);
-    // A source that writes nothing in the first seconds never will: the
-    // encoder rejected the stream, or the screen produces no frames. Say so
-    // while the take can still be restarted, not after it.
+    this.armSilenceWatch(src, sessionId, LOCAL_SILENCE_MS);
+  }
+
+  // A source that has written nothing this far into a take never will: the
+  // encoder rejected the stream, the screen produces no frames, or a phone
+  // has gone to sleep behind its own lock screen. Say so while the take can
+  // still be restarted, rather than after it.
+  private armSilenceWatch(src: Source, sessionId: string, after: number) {
+    window.clearTimeout(src.dataWatchdog);
     src.dataWatchdog = window.setTimeout(() => {
-      if (src.bytes === 0 && this.recording?.sessionId === sessionId) {
-        src.recorderError = 'no video came out of this source';
-        src.state = 'interrupted';
-        this.showToast(`${src.name} is recording nothing — remove it and add it again`);
-        this.emit();
-      }
-    }, 5000);
+      if (src.bytes > 0 || this.recording?.sessionId !== sessionId) return;
+      src.recorderError = 'no video came out of this source';
+      src.state = 'interrupted';
+      this.showToast(
+        src.local
+          ? `${src.name} is recording nothing — remove it and add it again`
+          : `${src.name} is recording nothing — wake the device and rejoin it`
+      );
+      this.emit();
+    }, after);
   }
 
   // --- recording ---------------------------------------------------------------
@@ -518,6 +534,7 @@ export class Hub {
       dir,
       manifest,
       startedAt: Date.now(),
+      stoppedAt: null,
       ids: online.map((s) => s.id),
       liveCuts: [],
       stopping: false,
@@ -527,7 +544,14 @@ export class Hub {
     await writeJson(dir, 'session.json', manifest).catch(() => {});
     for (const src of online) {
       if (src.local) this.startLocalRecorder(src, sessionId);
-      else sendJson(src.control, { type: 'record-start', sessionId, hubTime: Date.now() } satisfies HubToCamera);
+      else {
+        sendJson(src.control, { type: 'record-start', sessionId, hubTime: Date.now() } satisfies HubToCamera);
+        // A phone has its own recorder, its own tab and its own screen lock,
+        // and none of them tell us when they let go. Without this the hub
+        // takes a camera's silence for footage and only finds out at save
+        // time, which is the one moment the take cannot be redone.
+        this.armSilenceWatch(src, sessionId, REMOTE_SILENCE_MS);
+      }
     }
     if (!this.program || !this.recording.ids.includes(this.program)) this.program = online[0].id;
     this.emit();
@@ -582,6 +606,7 @@ export class Hub {
     const rec = this.recording;
     if (!rec || rec.stopping) return;
     rec.stopping = true;
+    rec.stoppedAt = Date.now();
     this.finalizingId = rec.sessionId;
     for (const id of rec.ids) {
       const src = this.sources.get(id);
@@ -851,7 +876,11 @@ export class Hub {
       folder: this.root.name,
       cameras,
       recording: this.recording
-        ? { sessionId: this.recording.sessionId, startedAt: this.recording.startedAt }
+        ? {
+            sessionId: this.recording.sessionId,
+            startedAt: this.recording.startedAt,
+            stoppedAt: this.recording.stoppedAt,
+          }
         : null,
       finalizing: this.finalizingId,
       program: this.program,
