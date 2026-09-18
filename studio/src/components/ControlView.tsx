@@ -18,6 +18,14 @@ export interface ControlActions {
   setFraming(framing: Framing): void;
 }
 
+// .mosaic's own gap, which the stacked arithmetic below has to agree with.
+const GAP = 6;
+
+// The shape the program monitor is framing for: the 4:5 render, or 16:9 for a
+// screen share and for the landscape cut.
+const programAspect = (cam: SnapshotCamera | null, framing: Framing) =>
+  cam && (cam.kind === 'local-screen' || framing === 'landscape') ? 16 / 9 : 4 / 5;
+
 export default function ControlView({
   state,
   streams,
@@ -66,11 +74,42 @@ export default function ControlView({
   const rows = slots <= 4 ? 2 : slots <= 6 ? 3 : 4;
   const cols = Math.max(1, Math.ceil(slots / rows));
 
+  // In a window taller than it is wide, a program column spanning every row
+  // is a slit: the 4:5 crop is wider than the cell, and the face inside it is
+  // cropped to a sliver. So when the column would come out narrower than the
+  // tallest thing that ships (9:16), the mosaic stacks instead — program
+  // across the top at the shape it is framing for, the rest in a strip
+  // beneath it. The test is the mosaic's own box, not the window's: the rail,
+  // the header and the recordings strip all take their cut first.
+  const mosaic = useRef<HTMLElement>(null);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const el = mosaic.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const stacked = box.h > 0 && (box.w * 2) / (2 + cols) < box.h * (9 / 16);
+
+  // Stacked, the strip is one row of 4:3 thumbnails and the program takes the
+  // height that is left — but never more than its own shape needs, or it
+  // would just crop the source harder. The arithmetic lives here rather than
+  // in the stylesheet because a cell sized from its aspect ratio cannot also
+  // be centered by the grid: asking for both leaves it no width at all.
+  const scols = slots <= 4 ? Math.max(1, slots) : Math.ceil(slots / 2);
+  const stripH = slots ? ((box.w - GAP * (scols - 1)) / scols) * (3 / 4) : 0;
+  const programW = Math.min(
+    box.w,
+    Math.max(0, box.h - (stripH ? stripH + GAP : 0)) * programAspect(program, state.framing),
+  );
+
   const cell = (cam: SnapshotCamera, big: boolean) => (
     <Cell
       key={big ? '__program' : cam.id}
       cam={cam}
       big={big}
+      stackedWidth={big && stacked ? programW : null}
       color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
       canRemove={!recording && !big}
@@ -155,12 +194,22 @@ export default function ControlView({
         </header>
 
         <main
-          className="mosaic"
-          style={{
-            gridTemplateColumns: `2fr repeat(${cols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
-            gridAutoFlow: 'column',
-          }}
+          ref={mosaic}
+          className={`mosaic${stacked ? ' stacked' : ''}`}
+          style={
+            stacked
+              ? {
+                  gridTemplateColumns: `repeat(${scols}, minmax(0, 1fr))`,
+                  gridTemplateRows: `minmax(0, 1fr)${stripH ? ` ${stripH}px` : ''}`,
+                  gridAutoRows: `${stripH}px`,
+                  gridAutoFlow: 'row',
+                }
+              : {
+                  gridTemplateColumns: `2fr repeat(${cols}, 1fr)`,
+                  gridTemplateRows: `repeat(${rows}, 1fr)`,
+                  gridAutoFlow: 'column',
+                }
+          }
         >
           {program && cell(program, true)}
           {others.map((c) => cell(c, false))}
@@ -249,6 +298,7 @@ export function RecTimer({ startedAt }: { startedAt: number }) {
 function Cell({
   cam,
   big,
+  stackedWidth,
   color,
   stream,
   canRemove,
@@ -262,6 +312,7 @@ function Cell({
 }: {
   cam: SnapshotCamera;
   big: boolean;
+  stackedWidth: number | null; // set only on a stacked program cell
   color: string;
   stream: MediaStream | null;
   canRemove: boolean;
@@ -298,7 +349,18 @@ function Cell({
   return (
     <div
       className={className}
-      style={big ? { gridColumn: 1, outline: `4px solid ${color}`, outlineOffset: -4 } : undefined}
+      style={
+        big
+          ? {
+              gridColumn: stackedWidth === null ? 1 : '1 / -1',
+              gridRow: stackedWidth === null ? undefined : 1,
+              width: stackedWidth === null ? undefined : stackedWidth,
+              aspectRatio: stackedWidth === null ? undefined : programAspect(cam, framing),
+              outline: `4px solid ${color}`,
+              outlineOffset: -4,
+            }
+          : undefined
+      }
       onClick={onClick}
     >
       <video

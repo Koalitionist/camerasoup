@@ -836,6 +836,13 @@ button.big:hover:not(:disabled) {
   grid-row: 1 / -1;
 }
 
+/* Stacked (a tall window): the program is sized in ControlView to the shape
+   it is framing for, and sits in the middle of whatever height the strip
+   beneath it did not take. */
+.mosaic.stacked .cell.big {
+  place-self: center;
+}
+
 /* Finding 1: what actually ships. Everything outside the 4:5 crop is dimmed
    by the ring shadow, and the 9:16 crop is drawn inside it — so the program
    monitor shows the two frames the render will produce, not the landscape
