@@ -150,17 +150,22 @@ export default function ControlView({
 
       <div className="rail-main">
         <header className="studio-header">
-          {meta}
-          <span className="meta">
-            {onlineCount} source{onlineCount === 1 ? '' : 's'}
-          </span>
-          {live && cameras.length > 1 && (
+          {/* On a phone there is no room for the folder, the count and the
+              hotkey hint next to the one control that has to be reachable,
+              so the lot of them step aside together (see .head-aside). */}
+          <span className="head-aside">
+            {meta}
             <span className="meta">
-              {state.auto === 'on'
-                ? 'auto — the camera you face goes on air'
-                : `1–${cameras.length} switches the live camera`}
+              {onlineCount} source{onlineCount === 1 ? '' : 's'}
             </span>
-          )}
+            {live && cameras.length > 1 && (
+              <span className="meta">
+                {state.auto === 'on'
+                  ? 'auto — the camera you face goes on air'
+                  : `1–${cameras.length} switches the live camera`}
+              </span>
+            )}
+          </span>
           <span className="spacer" />
           <button
             className="pill ghost small"

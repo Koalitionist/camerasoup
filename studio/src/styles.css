@@ -755,6 +755,13 @@ button.big:hover:not(:disabled) {
   font-weight: 500;
 }
 
+/* A wrapper that is not a box: the folder, the source count and the hotkey
+   hint stay separate flex items with the header's own gap between them, and
+   still leave as one when the window is too narrow to hold them. */
+.head-aside {
+  display: contents;
+}
+
 .studio-header .spacer {
   flex: 1;
 }
@@ -915,6 +922,13 @@ button.big:hover:not(:disabled) {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  /* A long device name on a thumbnail ran past the cell and sat on its
+     neighbour. The name gives way; the hotkey number in front of it is the
+     part you actually read at that size. */
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Renaming happens where the tag already is, so the label turns into the
@@ -2136,4 +2150,107 @@ button.big {
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
+}
+
+/* ---- the control surface on a phone -------------------------------------
+   A rail and a header sized for a Mac left a 430px-wide window about 270px
+   of room: the REC button was pushed off the end of the header and the add
+   cell's buttons ran out of their cell. Everything the shoot is driven by
+   stays; it is the furniture around it that gets smaller. */
+
+@media (max-width: 560px) {
+  .rail {
+    width: 72px;
+    gap: 4px;
+  }
+
+  /* The wordmark is a rotated run of text longer than a phone's rail is
+     wide, and it was never the thing you came to the page for. */
+  .rail-head {
+    display: none;
+  }
+
+  .cam-spine {
+    border-radius: 0 36px 36px 0;
+  }
+
+  .cam-spine-label {
+    inset: 10px 0 10px 10px;
+    font-size: 20px;
+  }
+
+  .cam-spine-label .num {
+    font-size: 32px;
+  }
+
+  .rail-add {
+    height: 72px;
+    border-radius: 0 36px 36px 0;
+    font-size: 28px;
+  }
+
+  .rail-main {
+    padding: 0 12px 12px 10px;
+    gap: 4px;
+  }
+
+  .studio-header {
+    height: 64px;
+    gap: 10px;
+    padding: 0 2px;
+  }
+
+  /* The folder and the counts are what the rail and the cells already say. */
+  .head-aside {
+    display: none;
+  }
+
+  .rec-button {
+    font-size: 17px;
+    height: 44px;
+    padding: 0 20px;
+  }
+
+  .rec-timer {
+    font-size: 24px;
+  }
+
+  .cell {
+    border-radius: 16px;
+  }
+
+  .tag,
+  .cell.big .tag {
+    left: 10px;
+    top: 10px;
+    padding: 4px 10px;
+    font-size: 14px;
+    max-width: calc(100% - 20px);
+  }
+
+  .cell-status {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  /* Three ways in, in a cell the width of a thumbnail. */
+  .cell.add {
+    gap: 4px;
+    padding: 8px;
+    align-items: stretch;
+  }
+
+  .cell.add .pill.ghost {
+    border-width: 1px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .recordings {
+    gap: 10px;
+    margin-top: 8px;
+    padding: 8px 2px 0;
+    height: 44px;
+    font-size: 13px;
+  }
 }
