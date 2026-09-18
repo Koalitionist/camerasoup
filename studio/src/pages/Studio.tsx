@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ControlView, { ControlActions } from '../components/ControlView';
 import SpinePage from '../components/Spine';
 import {
@@ -151,16 +151,23 @@ export default function Studio() {
     }
   };
 
-  const actions: ControlActions = {
-    cut: (id) => hubRef.current?.cut(id),
-    start: () => void hubRef.current?.startRecording(),
-    stop: () => hubRef.current?.stopRecording(),
-    remove: (id) => hubRef.current?.removeSource(id),
-    cameraControl: (id, c) => hubRef.current?.cameraControl(id, c),
-    setAuto: (on) => hubRef.current?.setAuto(on),
-    setFraming: (framing) => hubRef.current?.setFraming(framing),
-    rename: (sourceId, name) => hubRef.current?.renameSource(sourceId, name),
-  };
+  // Built once: every one of these reaches the hub through a ref, so a fresh
+  // object each render bought nothing and made the control surface tear down
+  // and re-arm its hotkeys on every snapshot — several times a second while
+  // the camera is rolling.
+  const actions = useMemo<ControlActions>(
+    () => ({
+      cut: (id) => hubRef.current?.cut(id),
+      start: () => void hubRef.current?.startRecording(),
+      stop: () => hubRef.current?.stopRecording(),
+      remove: (id) => hubRef.current?.removeSource(id),
+      cameraControl: (id, c) => hubRef.current?.cameraControl(id, c),
+      setAuto: (on) => hubRef.current?.setAuto(on),
+      setFraming: (framing) => hubRef.current?.setFraming(framing),
+      rename: (sourceId, name) => hubRef.current?.renameSource(sourceId, name),
+    }),
+    []
+  );
 
   const addScreen = async () => {
     try {

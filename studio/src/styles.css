@@ -790,9 +790,29 @@ button.big:hover:not(:disabled) {
    chance to lose the one thing that cannot be shot again. The page says so
    rather than quietly ignoring the press. */
 .saving-take .mosaic,
-.saving-take .rail .cam-spine {
+.saving-take .rail .cam-spine,
+.saving-take .rail-add {
   pointer-events: none;
+}
+
+.saving-take .rail .cam-spine {
   opacity: 0.55;
+}
+
+/* The mosaic is dimmed with a flat scrim rather than an opacity: its cells
+   are decoding video the whole time a take is being written, and a
+   see-through ancestor makes the browser blend every one of those layers on
+   every frame — at exactly the moment the machine should be writing files. */
+.saving-take .mosaic {
+  position: relative;
+}
+
+.saving-take .mosaic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: rgba(11, 11, 12, 0.55);
 }
 
 .saving-take .recordings a,
@@ -806,6 +826,7 @@ button.big:hover:not(:disabled) {
   cursor: default;
 }
 
+
 .saving {
   display: inline-flex;
   align-items: center;
@@ -815,31 +836,6 @@ button.big:hover:not(:disabled) {
   letter-spacing: -0.02em;
   color: var(--text);
   white-space: nowrap;
-}
-
-/* The one thing on the page still doing something. */
-.saving-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: var(--rec);
-  animation: saving-pulse 1s ease-in-out infinite;
-}
-
-@keyframes saving-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .saving-dot {
-    animation: none;
-  }
 }
 
 /* Stopped: the number is the take's length now, not a clock still running. */
@@ -1743,15 +1739,36 @@ button.big {
   }
 }
 
-/* A short window — a half-height desktop one, or a phone on its side. The
-   column and the furniture give back what the monitor has none of. */
+/* The editor with no room to spare: a short window — a half-height desktop
+   one, or a phone on its side — or a phone's width. What both have in common
+   is said here once; what differs is set in the two blocks below. */
+@media (min-aspect-ratio: 1 / 1) and (max-height: 620px), (max-width: 560px) {
+  .edit-header {
+    min-height: 56px;
+  }
+
+  .render-button {
+    font-size: 16px;
+    padding: 0 18px;
+  }
+
+  .timeline {
+    height: 56px;
+  }
+
+  .edit-hint {
+    display: none;
+  }
+}
+
+/* A short window: the column and the header give back what the monitor has
+   none of. */
 @media (min-aspect-ratio: 1 / 1) and (max-height: 620px) {
   .edit-angles {
     width: 200px;
   }
 
   .edit-header {
-    min-height: 56px;
     gap: 6px 16px;
     padding: 6px 16px;
   }
@@ -1766,17 +1783,10 @@ button.big {
 
   .render-button {
     height: 40px;
-    font-size: 16px;
-    padding: 0 18px;
   }
 
   .timeline {
-    height: 56px;
     margin: 10px 16px 14px 0;
-  }
-
-  .edit-hint {
-    display: none;
   }
 }
 
@@ -2319,11 +2329,12 @@ button.big {
   color: var(--text);
 }
 
-/* ---- the control surface on a phone -------------------------------------
+/* ---- the studio and the editor on a phone --------------------------------
    A rail and a header sized for a Mac left a 430px-wide window about 270px
    of room: the REC button was pushed off the end of the header and the add
    cell's buttons ran out of their cell. Everything the shoot is driven by
-   stays; it is the furniture around it that gets smaller. */
+   stays; it is the furniture around it that gets smaller. The editor's share
+   of this block pairs with the short-window rules above it. */
 
 @media (max-width: 560px) {
   .rail {
@@ -2382,10 +2393,7 @@ button.big {
     font-size: 24px;
   }
 
-  .cell {
-    border-radius: 16px;
-  }
-
+  .cell,
   .tag,
   .cell.big .tag {
     left: 10px;
@@ -2422,7 +2430,6 @@ button.big {
   }
 
   .edit-header {
-    min-height: 56px;
     gap: 8px 14px;
     padding: 8px 12px;
   }
@@ -2437,8 +2444,6 @@ button.big {
 
   .render-button {
     height: 44px;
-    font-size: 16px;
-    padding: 0 18px;
   }
 
   .edit-main {
@@ -2446,12 +2451,7 @@ button.big {
     padding-right: 12px;
   }
 
-  .angle {
-    border-radius: 16px;
-  }
-
   .timeline {
-    height: 56px;
     margin: 10px 12px 12px 0;
   }
 

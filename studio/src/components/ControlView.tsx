@@ -18,8 +18,10 @@ export interface ControlActions {
   setFraming(framing: Framing): void;
 }
 
-// .mosaic's own gap, which the stacked arithmetic below has to agree with.
-const GAP = 6;
+// The program column's share of the wide mosaic: `2fr` in the grid below,
+// and the same 2 in the test that decides whether the wide mosaic is usable
+// at all. One number, or the two disagree.
+const PROGRAM_FR = 2;
 
 // The shape the program monitor takes. A camera is framed for the render —
 // 4:5, or 16:9 for the landscape cut — because what ships is a crop of it.
@@ -55,11 +57,10 @@ export default function ControlView({
   const order = cameras.map((c) => c.id);
 
   // 1..9 drives the program: during a recording it cuts the show live. While
-  // the take is being written it does nothing — the cut list is closed, and
-  // the only thing left to do is let the files land.
+  // a take is being written the hub refuses the cut, so this stays as it is
+  // — the lock belongs to the thing that owns the take, not to the keyboard.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (finalizing) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT') return;
       const idx = parseInt(e.key, 10);
@@ -68,11 +69,11 @@ export default function ControlView({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order.join(','), actions, finalizing]);
+  }, [order.join(','), actions]);
 
-  // Which cameras have not finished handing their footage over. This is the
-  // whole of the wait, so it is worth naming rather than spinning at.
-  const flushing = cameras.filter((c) => c.state === 'flushing');
+  // How many cameras have not finished handing their footage over. This is
+  // the whole of the wait, so it is worth naming rather than spinning at.
+  const flushing = cameras.reduce((n, c) => n + (c.state === 'flushing' ? 1 : 0), 0);
   const programId = state.program ?? order[0] ?? null;
   const program = cameras.find((c) => c.id === programId) ?? null;
   const onlineCount = cameras.filter((c) => c.online).length;
@@ -94,21 +95,30 @@ export default function ControlView({
   // beneath it. The test is the mosaic's own box, not the window's: the rail,
   // the header and the recordings strip all take their cut first.
   const mosaic = useRef<HTMLElement>(null);
-  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState({ w: 0, h: 0, gap: 0 });
   useLayoutEffect(() => {
     const el = mosaic.current;
     if (!el) return;
-    const observer = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    const observer = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      // The gap is read rather than repeated: the stylesheet owns it, and a
+      // copy here would go quietly wrong the day someone edits it there.
+      const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+      setBox((old) => (old.w === w && old.h === h && old.gap === gap ? old : { w, h, gap }));
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const stacked = box.h > 0 && (box.w * 2) / (2 + cols) < box.h * (9 / 16);
+  const stacked =
+    box.h > 0 && (box.w * PROGRAM_FR) / (PROGRAM_FR + cols) < box.h * (9 / 16);
 
-  // What each source's picture actually is, as opposed to what it was asked
-  // for. Only the program cell reads it, but any cell can report it.
-  const [mediaAspect, setMediaAspect] = useState<Record<string, number>>({});
+  // The shape of the picture a screen share is actually sending. Only a
+  // screen is measured, because it is the only source shown whole — a camera
+  // is framed for the render whatever its sensor does.
+  const [screenAspect, setScreenAspect] = useState<Record<string, number>>({});
   const noteAspect = useCallback((id: string, ratio: number) => {
-    setMediaAspect((all) =>
+    setScreenAspect((all) =>
       Math.abs((all[id] ?? 0) - ratio) < 0.001 ? all : { ...all, [id]: ratio }
     );
   }, []);
@@ -119,12 +129,11 @@ export default function ControlView({
   // in the stylesheet because a cell sized from its aspect ratio cannot also
   // be centered by the grid: asking for both leaves it no width at all.
   const scols = slots <= 4 ? Math.max(1, slots) : Math.ceil(slots / 2);
-  const stripH = slots ? ((box.w - GAP * (scols - 1)) / scols) * (3 / 4) : 0;
-  const programW = Math.min(
-    box.w,
-    Math.max(0, box.h - (stripH ? stripH + GAP : 0)) *
-      programAspect(program, state.framing, programId ? mediaAspect[programId] : undefined),
-  );
+  const aspect = programAspect(program, state.framing, program ? screenAspect[program.id] : undefined);
+  const stripH = stacked && slots ? ((box.w - box.gap * (scols - 1)) / scols) * (3 / 4) : 0;
+  const programW = stacked
+    ? Math.min(box.w, Math.max(0, box.h - (stripH ? stripH + box.gap : 0)) * aspect)
+    : 0;
 
   const cell = (cam: SnapshotCamera, big: boolean) => (
     <Cell
@@ -132,12 +141,13 @@ export default function ControlView({
       cam={cam}
       big={big}
       stackedWidth={big && stacked ? programW : null}
+      aspect={aspect}
       onMedia={noteAspect}
       color={colorForKey(cam.keyNumber)}
       stream={streams[cam.id] ?? null}
       canRemove={!recording && !finalizing && !big}
       framing={state.framing}
-      onClick={() => !finalizing && actions.cut(cam.id)}
+      onClick={() => actions.cut(cam.id)}
       onRemove={() => actions.remove(cam.id)}
       onControl={(c) => actions.cameraControl(cam.id, c)}
       renaming={renaming === cam.id}
@@ -160,14 +170,14 @@ export default function ControlView({
             key={cam.id}
             cam={cam}
             color={colorForKey(cam.keyNumber)}
-            onCut={() => !finalizing && actions.cut(cam.id)}
+            onCut={() => actions.cut(cam.id)}
             onRename={() => setRenaming(cam.id)}
           />
         ))}
         {onAdd && (
           <div
             className={`rail-add${finalizing ? ' locked' : ''}`}
-            onClick={() => !finalizing && onAdd()}
+            onClick={onAdd}
             title={finalizing ? 'Wait for the take to save' : 'Add a camera'}
           >
             +
@@ -217,8 +227,8 @@ export default function ControlView({
           )}
           {finalizing ? (
             <span className="saving">
-              <span className="saving-dot" />
-              saving{flushing.length ? ` — ${flushing.length} still flushing` : '…'}
+              <span className="dot rec" />
+              saving{flushing ? ` — ${flushing} still flushing` : '…'}
             </span>
           ) : recording ? (
             <button className="rec-button stop" onClick={actions.stop}>
@@ -238,12 +248,12 @@ export default function ControlView({
             stacked
               ? {
                   gridTemplateColumns: `repeat(${scols}, minmax(0, 1fr))`,
-                  gridTemplateRows: `minmax(0, 1fr)${stripH ? ` ${stripH}px` : ''}`,
+                  gridTemplateRows: 'minmax(0, 1fr)',
                   gridAutoRows: `${stripH}px`,
                   gridAutoFlow: 'row',
                 }
               : {
-                  gridTemplateColumns: `2fr repeat(${cols}, 1fr)`,
+                  gridTemplateColumns: `${PROGRAM_FR}fr repeat(${cols}, 1fr)`,
                   gridTemplateRows: `repeat(${rows}, 1fr)`,
                   gridAutoFlow: 'column',
                 }
@@ -341,6 +351,7 @@ function Cell({
   cam,
   big,
   stackedWidth,
+  aspect,
   onMedia,
   color,
   stream,
@@ -356,6 +367,7 @@ function Cell({
   cam: SnapshotCamera;
   big: boolean;
   stackedWidth: number | null; // set only on a stacked program cell
+  aspect: number; // the shape the program is drawn at, resolved by the parent
   onMedia: (id: string, ratio: number) => void;
   color: string;
   stream: MediaStream | null;
@@ -377,21 +389,17 @@ function Cell({
     if (stream) void el.play().catch(() => {});
   }, [stream]);
 
-  // The track's own shape, kept here and reported up: it arrives with the
-  // first frame and changes again whenever a shared window is resized
-  // mid-take, so `loadedmetadata` alone is not enough. A quarter turn swaps
-  // the two sides.
-  const [ratio, setRatio] = useState<number | null>(null);
+  // A screen's own shape, reported up to whoever is laying the page out: it
+  // arrives with the first frame and changes again whenever a shared window
+  // is resized mid-take, so `loadedmetadata` alone is not enough. A camera
+  // is not measured — it is framed for the render, not for its sensor.
   useEffect(() => {
     const el = videoRef.current;
-    if (!el) return;
-    const turn = ((((cam.rotation ?? 0) % 360) + 360) % 360);
+    if (!el || cam.kind !== 'local-screen') return;
     const report = () => {
       if (!el.videoWidth || !el.videoHeight) return;
-      const quarter = turn === 90 || turn === 270;
-      const r = quarter ? el.videoHeight / el.videoWidth : el.videoWidth / el.videoHeight;
-      setRatio(r);
-      onMedia(cam.id, r);
+      const quarter = Math.abs(cam.rotation ?? 0) % 180 === 90;
+      onMedia(cam.id, quarter ? el.videoHeight / el.videoWidth : el.videoWidth / el.videoHeight);
     };
     report();
     el.addEventListener('loadedmetadata', report);
@@ -400,7 +408,7 @@ function Cell({
       el.removeEventListener('loadedmetadata', report);
       el.removeEventListener('resize', report);
     };
-  }, [stream, cam.id, cam.rotation, onMedia]);
+  }, [stream, cam.id, cam.kind, cam.rotation, onMedia]);
 
   const buffering = cam.pendingBytes > 4 * 1024 * 1024;
   const className = [
@@ -421,13 +429,17 @@ function Cell({
       style={
         big
           ? {
-              gridColumn: stackedWidth === null ? 1 : '1 / -1',
-              gridRow: stackedWidth === null ? undefined : 1,
-              width: stackedWidth === null ? undefined : stackedWidth,
-              aspectRatio:
-                stackedWidth === null ? undefined : programAspect(cam, framing, ratio ?? undefined),
+              gridColumn: 1,
               outline: `4px solid ${color}`,
               outlineOffset: -4,
+              // Stacked, the parent has measured the room and the shape:
+              // the cell spans the strip's columns and sits in the middle.
+              ...(stackedWidth !== null && {
+                gridColumn: '1 / -1',
+                gridRow: 1,
+                width: stackedWidth,
+                aspectRatio: aspect,
+              }),
             }
           : undefined
       }

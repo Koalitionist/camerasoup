@@ -285,6 +285,10 @@ export class CaptureSource {
     this.nextOffset = 0;
     this.stopping = false;
     const mimeType = CaptureSource.pickMimeType();
+    if (!mimeType) {
+      this.setInterrupted('this browser cannot record video');
+      return;
+    }
     try {
       this.recorder = new MediaRecorder(this.stream, {
         mimeType,

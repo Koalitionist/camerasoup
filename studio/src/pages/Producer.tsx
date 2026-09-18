@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CaptureSource, openScreen, openWebcam } from '../lib/capture';
 import { FRAME_PREVIEW, Json, StudioSocket } from '../lib/ws';
+import { RecTimer } from '../components/ControlView';
 
 interface RosterSource {
   id: string;
@@ -409,21 +410,6 @@ export default function Producer() {
 
       {toast && <div className="toast">{toast}</div>}
     </div>
-  );
-}
-
-function RecTimer({ startedAt }: { startedAt: number }) {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const t = window.setInterval(() => force((n) => n + 1), 500);
-    return () => window.clearInterval(t);
-  }, []);
-  const s = Math.max(0, (Date.now() - startedAt) / 1000);
-  const m = Math.floor(s / 60);
-  return (
-    <span className="rec-timer">
-      {m}:{String(Math.floor(s % 60)).padStart(2, '0')}
-    </span>
   );
 }
 

@@ -36,6 +36,11 @@ import {
 const EOF_TIMEOUT_MS = 20_000;
 const ACK_EVERY_MS = 1000;
 const FPS = 30;
+// How long a source may write nothing before the hub says so. A phone is
+// given longer than the Mac: it has a page to load, a recorder to start and
+// a first chunk to push over the network before anything can land.
+const LOCAL_SILENCE_MS = 5000;
+const REMOTE_SILENCE_MS = 8000;
 
 interface Source {
   id: string;
@@ -91,12 +96,6 @@ interface ControlView {
   forwarded: Set<string>;
 }
 
-// How long a source may write nothing before the hub says so. A phone is
-// given longer than the Mac: it has a page to load, a recorder to start and
-// a first chunk to push over the network before anything can land.
-const LOCAL_SILENCE_MS = 5000;
-const REMOTE_SILENCE_MS = 8000;
-
 interface Recording {
   sessionId: string;
   dir: FileSystemDirectoryHandle;
@@ -123,6 +122,11 @@ export class Hub {
   private controls = new Map<string, ControlView>();
   private recording: Recording | null = null;
   private finalizingId: string | null = null;
+  // The take that is being written. `recording` is dropped the moment the
+  // last camera reports its end of file, but the save runs on well past
+  // that, so the clock and the lock have to read from something that lasts
+  // as long as the write does.
+  private saving: { sessionId: string; startedAt: number; stoppedAt: number } | null = null;
   private program: string | null = null;
   private autoSwitcher: AutoSwitcher | null = null;
   private autoStatus: AutoStatus = 'off';
@@ -559,7 +563,7 @@ export class Hub {
 
   cut(sourceId: string, origin: 'manual' | 'auto' = 'manual', atMs = Date.now()) {
     const src = this.sources.get(sourceId);
-    if (!src) return;
+    if (!src || this.writing) return;
     if (origin === 'manual' && this.autoStatus === 'on') {
       this.autoSwitcher?.noteManualCut();
       this.showToast('Auto-switch paused for 10s');
@@ -608,6 +612,7 @@ export class Hub {
     rec.stopping = true;
     rec.stoppedAt = Date.now();
     this.finalizingId = rec.sessionId;
+    this.saving = { sessionId: rec.sessionId, startedAt: rec.startedAt, stoppedAt: rec.stoppedAt };
     for (const id of rec.ids) {
       const src = this.sources.get(id);
       if (!src) continue;
@@ -709,6 +714,7 @@ export class Hub {
     // Cameras that dropped mid-recording were kept for resume; prune now.
     for (const src of [...this.sources.values()]) if (!src.online) this.dropSource(src);
     this.finalizingId = null;
+    this.saving = null;
     this.sessions = await listSessions(this.root).catch(() => this.sessions);
     const failed = rec.manifest.sources.filter((s) => s.status === 'failed').length;
     this.showToast(
@@ -724,7 +730,10 @@ export class Hub {
   removeSource(id: string) {
     const src = this.sources.get(id);
     if (!src) return;
-    if (this.recording?.ids.includes(id)) {
+    // `recording` is already null while the files are being written, so the
+    // take's own ids cannot be the whole test: dropping a source mid-write
+    // takes its writer with it and the manifest records a failure.
+    if (this.writing || this.recording?.ids.includes(id)) {
       this.showToast(`Can’t remove ${src.name} while recording`);
       return;
     }
@@ -735,6 +744,7 @@ export class Hub {
   }
 
   private dropSource(src: Source) {
+    window.clearTimeout(src.dataWatchdog);
     src.peer?.close();
     if (src.peerId) {
       this.cameraPeers.delete(src.peerId);
@@ -806,8 +816,18 @@ export class Hub {
     if (renegotiate) void view.peer.offer().then(() => this.pushState(view));
   }
 
+  // While a take is being written the hub takes no orders about it: a cut has
+  // nowhere to go, a removed camera still owes us its footage, and the files
+  // landing on disk are the one thing that cannot be shot again. The rule
+  // lives here rather than in the control surface because the surface also
+  // runs on an iPad, where hiding a button proves nothing.
+  private get writing() {
+    return !!this.finalizingId;
+  }
+
   private onCommand(m: ControlToHub) {
     if (m.type !== 'command') return;
+    if (this.writing && m.cmd !== 'record-stop') return;
     switch (m.cmd) {
       case 'record-start':
         void this.startRecording();
@@ -881,7 +901,7 @@ export class Hub {
             startedAt: this.recording.startedAt,
             stoppedAt: this.recording.stoppedAt,
           }
-        : null,
+        : this.saving,
       finalizing: this.finalizingId,
       program: this.program,
       auto: this.autoStatus,
