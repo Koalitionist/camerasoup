@@ -264,11 +264,20 @@ export class CaptureSource {
   }
 
   private onRecordStart(sessionId: string) {
+    // See camera-client: a recorder left over from a take whose end-of-file
+    // never got out would swallow every take after it.
     if (this.recorder) {
       if (this.sessionId === sessionId) {
         this.socket.send({ type: 'recording-resume', sessionId });
+        return;
       }
-      return;
+      try {
+        if (this.recorder.state !== 'inactive') this.recorder.stop();
+      } catch {
+        // already gone; all we wanted was the slot
+      }
+      this.recorder = null;
+      this.stopping = false;
     }
     this.sessionId = sessionId;
     this.pending = [];

@@ -281,11 +281,24 @@ export class CameraClient {
   // --- recording -----------------------------------------------------------
 
   private onRecordStart(sessionId: string) {
+    // A recorder from an earlier take can outlive it: `maybeEof` only clears
+    // one once the end-of-file is out, and it cannot be sent while the
+    // control channel is down. Left there, it used to swallow every take
+    // that followed — this camera answered nothing, recorded nothing, and
+    // looked online the whole time. The take in hand is the one that
+    // matters, so an old recorder is stopped and dropped rather than obeyed.
     if (this.recorder) {
       if (this.sessionId === sessionId) {
         sendJson(this.control, { type: 'recording-resume', sessionId } satisfies CameraToHub);
+        return;
       }
-      return;
+      try {
+        if (this.recorder.state !== 'inactive') this.recorder.stop();
+      } catch {
+        // already gone; all we wanted was the slot
+      }
+      this.recorder = null;
+      this.stopping = false;
     }
     this.sessionId = sessionId;
     this.pending = [];
@@ -293,6 +306,10 @@ export class CameraClient {
     this.nextOffset = 0;
     this.stopping = false;
     this.mimeType = CaptureSource.pickMimeType();
+    if (!this.mimeType) {
+      this.setInterrupted('this browser cannot record video');
+      return;
+    }
     try {
       this.recorder = new MediaRecorder(this.stream, {
         mimeType: this.mimeType,
