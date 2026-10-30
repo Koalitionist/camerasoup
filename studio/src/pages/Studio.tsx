@@ -10,7 +10,9 @@ import {
   openWebcam,
 } from '../lib/capture';
 import {
+  folderGoneMessage,
   folderPermission,
+  folderReachable,
   hasFolderAccess,
   loadRootFolder,
   opfsRequested,
@@ -107,6 +109,13 @@ export default function Studio() {
 
   const startHub = useCallback(
     async (root: FileSystemDirectoryHandle) => {
+      if (!(await folderReachable(root))) {
+        setNeedsPermission(null);
+        setError(folderGoneMessage(root));
+        setPhase('folder');
+        return;
+      }
+      setError(null);
       setPhase('starting');
       const hub = new Hub(code, root);
       hubRef.current = hub;

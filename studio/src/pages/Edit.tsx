@@ -18,7 +18,9 @@ import {
 } from '../../../video/src/types';
 import SpinePage from '../components/Spine';
 import {
+  folderGoneMessage,
   folderPermission,
+  folderReachable,
   loadRootFolder,
   opfsRequested,
   pickRootFolder,
@@ -41,6 +43,7 @@ export default function Edit() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [sessions, setSessions] = useState<Manifest[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const [gone, setGone] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -50,6 +53,11 @@ export default function Edit() {
           const perm = await folderPermission(handle).catch(() => 'prompt' as PermissionState);
           if (perm !== 'granted') {
             setRegrant(handle);
+            return;
+          }
+          if (!(await folderReachable(handle))) {
+            setGone(folderGoneMessage(handle));
+            setNeedsFolder(true);
             return;
           }
         }
@@ -86,6 +94,7 @@ export default function Edit() {
         setStore(s);
         setNeedsFolder(false);
         setRegrant(null);
+        setGone(null);
       }
     } catch {
       // picker cancelled
@@ -106,9 +115,12 @@ export default function Edit() {
               <button
                 className="pill solid"
                 onClick={async () => {
-                  if (await requestFolderPermission(regrant)) {
-                    setRegrant(null);
-                    setStore(await getStore());
+                  if (!(await requestFolderPermission(regrant))) return;
+                  setRegrant(null);
+                  if (await folderReachable(regrant)) setStore(await getStore());
+                  else {
+                    setGone(folderGoneMessage(regrant));
+                    setNeedsFolder(true);
                   }
                 }}
               >
@@ -124,6 +136,7 @@ export default function Edit() {
             </button>
           )}
         </div>
+        {gone && <p className="hint">{gone}</p>}
       </SpinePage>
     );
   }

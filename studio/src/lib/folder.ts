@@ -93,6 +93,24 @@ export async function requestFolderPermission(handle: FileSystemDirectoryHandle)
   return (await (handle as PermissionHandle).requestPermission({ mode: 'readwrite' })) === 'granted';
 }
 
+// A remembered handle outlives its folder. Once the folder is moved, renamed
+// or deleted, Chrome still grants permission on the handle, but every read and
+// write throws InvalidStateError ("state cached in an interface object ...
+// changed since it was read from disk"). Needs the permission granted first.
+export async function folderReachable(handle: FileSystemDirectoryHandle): Promise<boolean> {
+  try {
+    await (handle as unknown as { values(): AsyncIterator<FileSystemHandle> }).values().next();
+    return true;
+  } catch (err) {
+    const name = (err as DOMException).name;
+    return name !== 'InvalidStateError' && name !== 'NotFoundError';
+  }
+}
+
+export function folderGoneMessage(handle: FileSystemDirectoryHandle): string {
+  return `“${handle.name}” was moved, renamed or deleted since it was picked. Choose the folder again.`;
+}
+
 export function newSessionId(now = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return (
