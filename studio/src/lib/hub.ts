@@ -40,6 +40,8 @@ const FPS = 30;
 // given longer than the Mac: it has a page to load, a recorder to start and
 // a first chunk to push over the network before anything can land.
 const LOCAL_SILENCE_MS = 5000;
+// Below 720p a webcam is visibly soft once it fills a 1080-wide frame.
+const WEBCAM_MIN_HEIGHT = 720;
 const REMOTE_SILENCE_MS = 8000;
 
 interface Source {
@@ -404,10 +406,29 @@ export class Hub {
     if (kind === 'local-screen' && src.hasAudio === false) {
       this.showToast(`${name} has no audio — re-share and tick “Share tab audio” for sound`);
     }
+    if (kind === 'local-webcam' && src.track) void this.checkWebcamSize(src.track, name);
     for (const control of this.controls.values()) this.forwardTo(control, src);
     if (!this.program) this.program = id;
     this.emit();
     return id;
+  }
+
+  // A Mac's camera is shared between apps at whatever size the first one
+  // opened it, so a camera another tab or a call app is holding comes back
+  // 640×480 however nicely 1080p is asked for. Ask once more, and if it still
+  // falls short say so now: soft footage found in the editor is too late.
+  private async checkWebcamSize(track: MediaStreamTrack, name: string) {
+    const short = () => (track.getSettings().height ?? 0) < WEBCAM_MIN_HEIGHT;
+    if (!short()) return;
+    await track
+      .applyConstraints({ width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } })
+      .catch(() => {});
+    if (!short() || track.readyState === 'ended') return;
+    const { width, height } = track.getSettings();
+    this.showToast(
+      `${name} is only giving ${width}×${height} — another app or tab may be using the camera. ` +
+        'Quit it, then remove the camera and add it again'
+    );
   }
 
   private startLocalRecorder(src: Source, sessionId: string) {
