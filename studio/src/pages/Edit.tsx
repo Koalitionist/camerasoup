@@ -17,7 +17,13 @@ import {
   FORMATS,
 } from '../../../video/src/types';
 import SpinePage from '../components/Spine';
-import { pickRootFolder } from '../lib/folder';
+import {
+  folderPermission,
+  loadRootFolder,
+  opfsRequested,
+  pickRootFolder,
+  requestFolderPermission,
+} from '../lib/folder';
 import { isHosted } from '../lib/platform';
 import { colorForKey, textOn } from '../lib/theme';
 import type { RenderProgress } from '../lib/render-browser';
@@ -29,23 +35,64 @@ export default function Edit() {
   const sessionId = new URLSearchParams(location.search).get('session');
   const [store, setStore] = useState<SessionStore | null>(null);
   const [needsFolder, setNeedsFolder] = useState(false);
+  // A remembered folder whose permission the browser has since forgotten:
+  // Chrome drops the grant once every tab of the site has been closed.
+  const [regrant, setRegrant] = useState<FileSystemDirectoryHandle | null>(null);
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [sessions, setSessions] = useState<Manifest[] | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
 
   useEffect(() => {
-    void getStore().then((s) => {
+    void (async () => {
+      if (isHosted() && !opfsRequested()) {
+        const handle = await loadRootFolder();
+        if (handle) {
+          const perm = await folderPermission(handle).catch(() => 'prompt' as PermissionState);
+          if (perm !== 'granted') {
+            setRegrant(handle);
+            return;
+          }
+        }
+      }
+      const s = await getStore();
       if (s) setStore(s);
       else setNeedsFolder(true); // hosted, but no folder remembered yet
-    });
+    })();
   }, []);
+
+  const refresh = useCallback(() => {
+    if (!store) return;
+    setProblem(null);
+    store.list().then(setSessions, (e: unknown) => {
+      setSessions([]);
+      setProblem(`Could not read the folder: ${e instanceof Error ? e.message : String(e)}`);
+    });
+  }, [store]);
 
   useEffect(() => {
     if (!store) return;
-    if (sessionId) void store.load(sessionId).then(setManifest);
-    else void store.list().then(setSessions);
-  }, [store, sessionId]);
+    if (!sessionId) return refresh();
+    store.load(sessionId).then(
+      (m) => (m ? setManifest(m) : setProblem(`Could not open session ${sessionId}.`)),
+      (e: unknown) => setProblem(e instanceof Error ? e.message : String(e))
+    );
+  }, [store, sessionId, refresh]);
 
-  if (needsFolder) {
+  const chooseFolder = async () => {
+    try {
+      await pickRootFolder();
+      const s = await getStore();
+      if (s) {
+        setStore(s);
+        setNeedsFolder(false);
+        setRegrant(null);
+      }
+    } catch {
+      // picker cancelled
+    }
+  };
+
+  if (needsFolder || regrant) {
     return (
       <SpinePage>
         <span className="meta">Editor</span>
@@ -54,42 +101,52 @@ export default function Edit() {
           The same folder the studio records into. The browser asks once per computer.
         </p>
         <div className="actions-row" style={{ marginTop: 8 }}>
-          <button
-            className="pill solid"
-            onClick={async () => {
-              try {
-                await pickRootFolder();
-                const s = await getStore();
-                if (s) {
-                  setStore(s);
-                  setNeedsFolder(false);
-                }
-              } catch {
-                // picker cancelled
-              }
-            }}
-          >
-            Choose folder
-          </button>
+          {regrant ? (
+            <>
+              <button
+                className="pill solid"
+                onClick={async () => {
+                  if (await requestFolderPermission(regrant)) {
+                    setRegrant(null);
+                    setStore(await getStore());
+                  }
+                }}
+              >
+                Use “{regrant.name}” again
+              </button>
+              <button className="pill outline" onClick={() => void chooseFolder()}>
+                Choose a different folder
+              </button>
+            </>
+          ) : (
+            <button className="pill solid" onClick={() => void chooseFolder()}>
+              Choose folder
+            </button>
+          )}
         </div>
       </SpinePage>
     );
   }
   if (!sessionId)
-    return (
-      <SessionPicker
-        sessions={sessions}
-        store={store}
-        onChanged={() => void store?.list().then(setSessions)}
-      />
-    );
+    return <SessionPicker sessions={sessions} store={store} problem={problem} onChanged={refresh} />;
   if (!manifest) {
     return (
       <SpinePage>
-        <div className="join-status">
-          <span className="dot active" />
-          Loading session…
-        </div>
+        {problem ? (
+          <>
+            <p className="hint danger-text">{problem}</p>
+            <div className="actions-row">
+              <a href="/edit">
+                <button className="pill outline">← All sessions</button>
+              </a>
+            </div>
+          </>
+        ) : (
+          <div className="join-status">
+            <span className="dot active" />
+            Loading session…
+          </div>
+        )}
       </SpinePage>
     );
   }
@@ -193,10 +250,12 @@ function sizeOf(bytes: number) {
 function SessionPicker({
   sessions,
   store,
+  problem: readProblem,
   onChanged,
 }: {
   sessions: Manifest[] | null;
   store: SessionStore | null;
+  problem: string | null;
   onChanged: () => void;
 }) {
   const home = isHosted() ? '/studio' : '/producer';
@@ -252,7 +311,10 @@ function SessionPicker({
       <span className="meta">Editor</span>
       <h1>Edit a session</h1>
       {!sessions && <p className="hint">Loading…</p>}
-      {sessions?.length === 0 && <p className="lede">No sessions yet — record one first.</p>}
+      {readProblem && <p className="hint danger-text">{readProblem}</p>}
+      {sessions?.length === 0 && !readProblem && (
+        <p className="lede">No sessions yet — record one first.</p>
+      )}
 
       {takes.length > 0 && (
         <div className="take-tools">
