@@ -7,7 +7,7 @@
 // therefore written as closed segments of a few megabytes and stitched into
 // one file at stop: a crash costs seconds, not the take.
 
-import type { Grade } from '../../../video/src/types';
+import type { Framing, Grade, Range } from '../../../video/src/types';
 
 const DB_NAME = 'camerasoup';
 const STORE = 'handles';
@@ -128,6 +128,7 @@ export interface ManifestSource {
   // the editor reads as "assume there is sound" rather than as silence.
   hasAudio?: boolean;
   grade?: Grade; // color correction; the footage itself is never touched
+  framing?: Framing; // zoom and position; likewise only applied on draw
   file: string | null;
   status: 'recording' | 'finalized' | 'failed';
   recordStart: number | null; // hub-clock ms when the recorder started
@@ -147,6 +148,8 @@ export interface Manifest {
   sources: ManifestSource[];
   cuts: { atFrame: number; sourceId: string }[];
   audioSource: string | null;
+  removed?: Range[]; // stretches cut out of the program, in synced-timeline frames
+  crossfade?: boolean; // blend the audio across each removed stretch; on unless false
   recorder?: 'browser';
 }
 

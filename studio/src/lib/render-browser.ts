@@ -3,7 +3,7 @@
 // Mediabunny demuxes each angle and decodes it with WebCodecs; every output
 // frame is composited onto one canvas and encoded with the Mac's hardware
 // h264 encoder, then muxed to MP4 with AAC audio. The timeline maths is the
-// same buildTimeline() the editor previews, so what you see is what renders.
+// same buildProgram() the editor previews, so what you see is what renders.
 import {
   ALL_FORMATS,
   AudioBufferSink,
@@ -19,7 +19,8 @@ import {
   QUALITY_HIGH,
   Rotation,
 } from 'mediabunny';
-import { FilmFormat, FilmProps, FORMATS, buildTimeline, drawGraded } from '../../../video/src/types';
+import { FilmFormat, FilmProps, FORMATS, buildProgram, drawGraded, placeCover } from '../../../video/src/types';
+import { spliceAudio } from './splice-audio';
 import { SessionStore } from './session-store';
 
 export interface RenderProgress {
@@ -46,9 +47,10 @@ export async function renderSession(opts: {
   onProgress?: (p: RenderProgress) => void;
 }): Promise<string[]> {
   const { props, store, sessionId, formats, onProgress } = opts;
-  const timeline = buildTimeline(props);
+  const program = buildProgram(props);
+  const { timeline } = program;
   const { fps } = props;
-  const total = timeline.durationInFrames;
+  const total = program.durationInFrames;
   if (!total || !props.sources.length) throw new Error('nothing to render');
 
   // One Input per angle, reused across formats.
@@ -72,7 +74,7 @@ export async function renderSession(opts: {
       if (!ctx) throw new Error('could not open a 2D canvas');
 
       // The sink only rotates, at the angle's own resolution; the fit into
-      // the output frame is done here with the same center-cover maths the
+      // the output frame is done here with the same cover-and-frame maths the
       // editor's program monitor uses, so the preview and the file agree.
       const sinks = new Map<string, CanvasSink>();
       for (const source of props.sources) {
@@ -91,16 +93,13 @@ export async function renderSession(opts: {
       // The grade is re-applied here rather than baked into the recording,
       // so it is the same data the editor previewed and can be changed by
       // re-rendering. Same canvas API at both ends, so they cannot drift.
-      const grades = new Map(props.sources.map((s) => [s.id, s.grade]));
+      const bySource = new Map(props.sources.map((s) => [s.id, s]));
       const drawCover = (frame: { canvas: HTMLCanvasElement | OffscreenCanvas }, sourceId: string) => {
         const src = frame.canvas;
         if (!src.width || !src.height) return;
-        const scale = Math.max(width / src.width, height / src.height);
-        const w = src.width * scale;
-        const h = src.height * scale;
-        drawGraded(ctx, width, height, grades.get(sourceId), () =>
-          ctx.drawImage(src, (width - w) / 2, (height - h) / 2, w, h)
-        );
+        const source = bySource.get(sourceId);
+        const p = placeCover(width, height, src.width, src.height, source?.framing);
+        drawGraded(ctx, width, height, source?.grade, () => ctx.drawImage(src, p.x, p.y, p.w, p.h));
       };
 
       const target = new BufferTarget();
@@ -125,8 +124,9 @@ export async function renderSession(opts: {
 
       await output.start();
 
-      // Video, one cut segment at a time: within a segment the timestamps
-      // are monotonic, which lets the sink decode each packet once.
+      // Video, one piece at a time: a piece is one angle over one kept
+      // stretch, so its timestamps are monotonic and the sink decodes each
+      // packet once. Removed stretches are simply never asked for.
       let done = 0;
       const report = () => {
         onProgress?.({
@@ -136,34 +136,34 @@ export async function renderSession(opts: {
       };
       report();
 
-      for (const segment of timeline.segments) {
-        const sink = sinks.get(segment.sourceId);
-        const trim = timeline.trim[segment.sourceId] ?? 0;
+      for (const piece of program.pieces) {
+        const sink = sinks.get(piece.sourceId);
+        const trim = timeline.trim[piece.sourceId] ?? 0;
         if (!sink) {
           // An angle we can't decode: hold black rather than abort the render.
-          for (let i = 0; i < segment.len; i++) {
+          for (let i = 0; i < piece.len; i++) {
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, width, height);
-            await videoSource.add((segment.start + i) / fps, 1 / fps);
+            await videoSource.add((piece.out + i) / fps, 1 / fps);
             done++;
           }
           report();
           continue;
         }
         const timestamps: number[] = [];
-        for (let i = 0; i < segment.len; i++) timestamps.push((segment.start + i + trim) / fps);
+        for (let i = 0; i < piece.len; i++) timestamps.push((piece.src + i + trim) / fps);
         let i = 0;
         for await (const frame of sink.canvasesAtTimestamps(timestamps)) {
-          if (frame) drawCover(frame, segment.sourceId);
+          if (frame) drawCover(frame, piece.sourceId);
           // A null frame (past the end of that angle) holds the last picture.
-          await videoSource.add((segment.start + i) / fps, 1 / fps);
+          await videoSource.add((piece.out + i) / fps, 1 / fps);
           i++;
           done++;
           if (done % 15 === 0) report();
         }
         // Any frames the sink could not supply still need to exist.
-        for (; i < segment.len; i++) {
-          await videoSource.add((segment.start + i) / fps, 1 / fps);
+        for (; i < piece.len; i++) {
+          await videoSource.add((piece.out + i) / fps, 1 / fps);
           done++;
         }
         report();
@@ -171,12 +171,39 @@ export async function renderSession(opts: {
 
       if (audioSource && audioTrack && audioId) {
         const trim = timeline.trim[audioId] ?? 0;
-        const from = trim / fps;
-        const to = (trim + total) / fps;
         const sink = new AudioBufferSink(audioTrack);
-        for await (const { buffer } of sink.buffers(from, to)) {
-          await audioSource.add(buffer);
-        }
+        const sampleRate = audioTrack.sampleRate;
+        const channelCount = audioTrack.numberOfChannels;
+        let out = 0;
+        const spans = program.kept.map((k) => {
+          const span = {
+            from: (trim + k.from) / fps,
+            to: (trim + k.to) / fps,
+            outStart: out / fps,
+            outEnd: (out + k.to - k.from) / fps,
+          };
+          out += k.to - k.from;
+          return span;
+        });
+        const source = audioSource;
+        await spliceAudio({
+          spans,
+          crossfade: props.crossfade ?? true,
+          sampleRate,
+          channelCount,
+          read: async function* (from, to) {
+            for await (const { buffer, timestamp } of sink.buffers(from, to)) {
+              const channels: Float32Array[] = [];
+              for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
+              yield { timestamp, channels };
+            }
+          },
+          emit: async (channels) => {
+            const buffer = new AudioBuffer({ length: channels[0].length, numberOfChannels: channelCount, sampleRate });
+            channels.forEach((data, c) => buffer.copyToChannel(data as Float32Array<ArrayBuffer>, c));
+            await source.add(buffer);
+          },
+        });
         audioSource.close();
       }
 

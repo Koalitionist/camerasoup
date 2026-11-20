@@ -117,12 +117,21 @@ app.delete('/api/sessions/:id', (req, res) => {
 app.post('/api/sessions/:id/edit', (req, res) => {
   try {
     const manifest = readManifest(req.params.id);
-    const { cuts, audioSource, rotations } = req.body ?? {};
+    const { cuts, audioSource, rotations, framings, removed, crossfade } = req.body ?? {};
     if (Array.isArray(cuts)) manifest.cuts = cuts;
+    if (Array.isArray(removed)) manifest.removed = removed;
+    if (typeof crossfade === 'boolean') manifest.crossfade = crossfade;
     if (audioSource !== undefined) manifest.audioSource = audioSource;
     if (rotations && typeof rotations === 'object') {
       for (const src of manifest.sources) {
         if (typeof rotations[src.id] === 'number') src.rotation = rotations[src.id];
+      }
+    }
+    if (framings && typeof framings === 'object') {
+      for (const src of manifest.sources) {
+        const f = framings[src.id];
+        if (f && typeof f.zoom === 'number') src.framing = { zoom: f.zoom, x: f.x, y: f.y };
+        else delete src.framing;
       }
     }
     writeManifest(manifest);

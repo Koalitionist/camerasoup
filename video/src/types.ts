@@ -6,6 +6,7 @@ export interface EditSource {
   duration: number; // seconds
   rotation?: number; // 0 | 90 | 180 | 270, clockwise
   grade?: Grade; // color correction, applied on every draw
+  framing?: Framing; // zoom and position within the output frame
   hasAudio?: boolean; // undefined on older sessions: unknown, not silent
 }
 
@@ -30,7 +31,15 @@ export type FilmProps = {
   audioSourceId: string | null;
   fps: number;
   format?: FilmFormat;
+  removed?: Range[]; // stretches cut out of the program, on the synced timeline
+  crossfade?: boolean; // blend the audio across each removed stretch
 };
+
+// [from, to) in frames of the synced timeline.
+export interface Range {
+  from: number;
+  to: number;
+}
 
 export interface Segment {
   start: number;
@@ -79,6 +88,160 @@ export function buildTimeline(props: FilmProps): Timeline {
     if (next > start) segments.push({ start, len: next - start, sourceId });
   }
   return { durationInFrames, trim, segments };
+}
+
+// ---- cutting out time ---------------------------------------------------
+//
+// Removed stretches live on the same synced timeline as the angle cuts, not
+// on the shortened program. So taking time out never moves a cut, putting it
+// back restores exactly what was there, and a cut inside a removed stretch
+// simply goes with it.
+
+// Sorted, merged, clipped to the timeline; anything empty dropped.
+export function normalizeRanges(ranges: Range[] | undefined, duration: number): Range[] {
+  const sorted = (ranges ?? [])
+    .map((r) => ({
+      from: Math.max(0, Math.round(Math.min(r.from, r.to))),
+      to: Math.min(duration, Math.round(Math.max(r.from, r.to))),
+    }))
+    .filter((r) => r.to > r.from)
+    .sort((a, b) => a.from - b.from);
+  const out: Range[] = [];
+  for (const r of sorted) {
+    const last = out[out.length - 1];
+    if (last && r.from <= last.to) last.to = Math.max(last.to, r.to);
+    else out.push({ ...r });
+  }
+  // The program cannot be cut down to nothing.
+  if (out.length === 1 && out[0].from === 0 && out[0].to === duration) return [];
+  return out;
+}
+
+// What is left: the complement of the removed stretches.
+export function keptSpans(duration: number, removed: Range[]): Range[] {
+  const kept: Range[] = [];
+  let at = 0;
+  for (const r of removed) {
+    if (r.from > at) kept.push({ from: at, to: r.from });
+    at = Math.max(at, r.to);
+  }
+  if (at < duration) kept.push({ from: at, to: duration });
+  return kept;
+}
+
+// One continuous run of a single angle in the finished film.
+export interface Piece {
+  sourceId: string;
+  src: number; // first frame, on the synced timeline
+  out: number; // first frame, in the finished film
+  len: number;
+}
+
+export interface Program {
+  timeline: Timeline;
+  removed: Range[];
+  kept: Range[];
+  pieces: Piece[];
+  durationInFrames: number; // of the finished film
+}
+
+// The film as rendered: the angle segments with the removed stretches taken
+// out, laid end to end. Both renderers and the editor's clock read this.
+export function buildProgram(props: FilmProps): Program {
+  const timeline = buildTimeline(props);
+  const removed = normalizeRanges(props.removed, timeline.durationInFrames);
+  const kept = keptSpans(timeline.durationInFrames, removed);
+  const pieces: Piece[] = [];
+  let out = 0;
+  for (const span of kept) {
+    for (const seg of timeline.segments) {
+      const from = Math.max(span.from, seg.start);
+      const to = Math.min(span.to, seg.start + seg.len);
+      if (to <= from) continue;
+      pieces.push({ sourceId: seg.sourceId, src: from, out: out + (from - span.from), len: to - from });
+    }
+    out += span.to - span.from;
+  }
+  return { timeline, removed, kept, pieces, durationInFrames: Math.max(1, out) };
+}
+
+// Synced-timeline frame → finished-film frame. Inside a removed stretch it
+// lands on the join where that stretch used to be.
+export function programFrameOf(kept: Range[], frame: number): number {
+  let out = 0;
+  for (const span of kept) {
+    if (frame < span.from) return out;
+    if (frame < span.to) return out + (frame - span.from);
+    out += span.to - span.from;
+  }
+  return out;
+}
+
+// The removed stretch containing a frame, if any.
+export function removedAt(removed: Range[], frame: number): Range | null {
+  return removed.find((r) => frame >= r.from && frame < r.to) ?? null;
+}
+
+// ---- framing -------------------------------------------------------------
+//
+// Every angle is fitted to the output by cover: scaled until the frame is
+// full, the overflow cropped. Framing is where that crop lands and how far in
+// it goes, so something at the edge of a shot can be pushed out of the
+// picture. Like a grade it is data, re-applied on every draw.
+//
+// The position is a focus point on the upright picture, not an offset in
+// output pixels: the same point stays in the middle of a 4:5, a 9:16 and a
+// 16:9 render, as far as each one's crop allows.
+
+export interface Framing {
+  zoom: number; // 1 = the plain cover fit, up to MAX_ZOOM
+  x: number; // 0..1 across the upright picture; 0.5 = centered
+  y: number; // 0..1 down it
+}
+
+export const MAX_ZOOM = 4;
+export const UNFRAMED: Framing = { zoom: 1, x: 0.5, y: 0.5 };
+
+export function isUnframed(framing?: Framing | null): boolean {
+  if (!framing) return true;
+  const near = (a: number, b: number) => Math.abs(a - b) < 0.0005;
+  return near(framing.zoom, 1) && near(framing.x, 0.5) && near(framing.y, 0.5);
+}
+
+export interface Placement {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+// Where the upright picture goes in the output frame. Never leaves an edge
+// uncovered: the focus point is centered only as far as the picture reaches.
+export function placeCover(
+  outW: number,
+  outH: number,
+  contentW: number,
+  contentH: number,
+  framing?: Framing | null
+): Placement {
+  const f = framing ?? UNFRAMED;
+  const zoom = clamp(f.zoom, 1, MAX_ZOOM);
+  const scale = Math.max(outW / contentW, outH / contentH) * zoom;
+  const w = contentW * scale;
+  const h = contentH * scale;
+  return {
+    x: clamp(outW / 2 - f.x * w, outW - w, 0),
+    y: clamp(outH / 2 - f.y * h, outH - h, 0),
+    w,
+    h,
+  };
+}
+
+// The focus point a placement actually shows. Storing this rather than the
+// raw drag means pulling past an edge does not bank movement that has to be
+// undone before the picture moves back.
+export function focusOf(outW: number, outH: number, p: Placement): { x: number; y: number } {
+  return { x: (outW / 2 - p.x) / p.w, y: (outH / 2 - p.y) / p.h };
 }
 
 // ---- color ---------------------------------------------------------------

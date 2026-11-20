@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Grade } from '../../../video/src/types';
+import type { Framing, Grade, Range } from '../../../video/src/types';
 import {
+  buildProgram,
   buildTimeline,
   drawGraded,
+  normalizeRanges,
+  programFrameOf,
+  removedAt,
+  focusOf,
   isNeutral,
+  isUnframed,
+  MAX_ZOOM,
+  placeCover,
+  UNFRAMED,
   gradeFilter,
   gradeTint,
   GRADE_PRESETS,
@@ -415,6 +424,18 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   const [grades, setGrades] = useState<Record<string, Grade>>(() =>
     Object.fromEntries(manifest.sources.filter((s) => s.grade).map((s) => [s.id, s.grade!]))
   );
+  const [framings, setFramings] = useState<Record<string, Framing>>(() =>
+    Object.fromEntries(manifest.sources.filter((s) => s.framing).map((s) => [s.id, s.framing!]))
+  );
+  const setFraming = useCallback((id: string, f: Framing | null) => {
+    setFramings((all) => {
+      const next = { ...all };
+      // Like a grade: the plain center crop is the absence of a framing.
+      if (f && !isUnframed(f)) next[id] = f;
+      else delete next[id];
+      return next;
+    });
+  }, []);
 
   // Playable files: a path on the local server, a blob URL from the folder.
   const usable = useMemo(
@@ -449,12 +470,18 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               duration: s.duration!,
               rotation: rotations[s.id] ?? 0,
               grade: grades[s.id],
+              framing: framings[s.id],
               hasAudio: s.hasAudio,
             })),
-    [usable, urls, rotations, grades]
+    [usable, urls, rotations, grades, framings]
   );
 
   const [cuts, setCuts] = useState<Cut[]>(manifest.cuts ?? []);
+  // Time taken out of the program, on the synced timeline (see buildProgram).
+  const [removed, setRemoved] = useState<Range[]>(manifest.removed ?? []);
+  const [crossfade, setCrossfade] = useState(manifest.crossfade ?? true);
+  // In and out marks for the next stretch to cut out.
+  const [marks, setMarks] = useState<{ in: number | null; out: number | null }>({ in: null, out: null });
   // Null means "not chosen yet" and resolves below; only an explicit pick is
   // stored, so opening a session never rewrites its manifest.
   const [audioSourceId, setAudioSourceId] = useState<string | null>(manifest.audioSource);
@@ -504,11 +531,29 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
   }>({ state: 'idle', progress: 0 });
 
   const props: FilmProps = useMemo(
-    () => ({ sources, cuts, audioSourceId: chosenAudioId, fps, format }),
-    [sources, cuts, chosenAudioId, fps, format]
+    () => ({ sources, cuts, audioSourceId: chosenAudioId, fps, format, removed, crossfade }),
+    [sources, cuts, chosenAudioId, fps, format, removed, crossfade]
   );
-  const timeline = useMemo(() => buildTimeline(props), [props]);
+  const program = useMemo(() => buildProgram(props), [props]);
+  const { timeline } = program;
+  // The playhead runs on the synced timeline, like the cuts; the clock shows
+  // the finished film's time.
   const total = timeline.durationInFrames;
+  const removedRef = useRef(program.removed);
+  removedRef.current = program.removed;
+
+  // A removed stretch is never stood in: landing in one moves past it, the
+  // way you were going, unless that runs off the end.
+  const outsideRemoved = useCallback(
+    (f: number, dir: 1 | -1 = 1) => {
+      const r = removedAt(removedRef.current, f);
+      if (!r) return f;
+      if (dir > 0 && r.to < total) return r.to;
+      if (r.from > 0) return r.from - 1;
+      return r.to < total ? r.to : f;
+    },
+    [total]
+  );
 
   // ---- transport: our own playback clock (no media element drives time) ----
   const [playing, setPlaying] = useState(false);
@@ -521,21 +566,28 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     setFrame(f);
   }, []);
 
+  // Bumped whenever playback jumps a removed stretch, so the media elements
+  // follow at once rather than waiting to drift far enough to correct.
+  const [skips, setSkips] = useState(0);
+
   const seekTo = useCallback(
-    (f: number) => {
-      const clamped = Math.max(0, Math.min(total - 1, f));
+    (f: number, dir: 1 | -1 = 1) => {
+      const clamped = outsideRemoved(Math.max(0, Math.min(total - 1, f)), dir);
       if (playClock.current) playClock.current = { t: performance.now(), f: clamped };
       setFrameBoth(clamped);
     },
-    [total, setFrameBoth]
+    [total, setFrameBoth, outsideRemoved]
   );
+
+  // The last frame the film actually shows.
+  const lastKept = program.kept.length ? program.kept[program.kept.length - 1].to - 1 : total - 1;
 
   const toggle = useCallback(() => {
     setPlaying((p) => {
-      if (!p && frameRef.current >= total - 1) setFrameBoth(0);
+      if (!p && frameRef.current >= lastKept) setFrameBoth(outsideRemoved(0));
       return !p;
     });
-  }, [total, setFrameBoth]);
+  }, [lastKept, setFrameBoth, outsideRemoved]);
 
   useEffect(() => {
     if (!playing) {
@@ -547,41 +599,68 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     const tick = () => {
       const c = playClock.current;
       if (!c) return;
-      const f = c.f + ((performance.now() - c.t) / 1000) * fps;
-      if (f >= total - 1) {
-        setFrameBoth(total - 1);
+      let f = c.f + ((performance.now() - c.t) / 1000) * fps;
+      if (f >= lastKept) {
+        setFrameBoth(lastKept);
         setPlaying(false);
         return;
+      }
+      const r = removedAt(removedRef.current, Math.floor(f));
+      if (r) {
+        // Jump the stretch and restart the clock from its far side.
+        f = r.to;
+        playClock.current = { t: performance.now(), f };
+        setSkips((n) => n + 1);
       }
       setFrameBoth(f);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, fps, total, setFrameBoth]);
+  }, [playing, fps, lastKept, setFrameBoth]);
 
   // Registry of the angle-tile <video> elements. The program canvas draws
   // from these directly — no extra media streams (Chrome allows only 6
   // concurrent connections per origin, and long sessions have big files).
   const videoEls = useRef(new Map<string, HTMLVideoElement>());
 
-  // ---- undo history for cut operations (Cmd/Ctrl+Z) ----
-  const history = useRef<Cut[][]>([]);
-  const pushHistory = useCallback((current: Cut[]) => {
-    history.current.push(current);
+  // ---- undo history for the edit: angle cuts and removed time (Cmd/Ctrl+Z) ----
+  const history = useRef<{ cuts: Cut[]; removed: Range[] }[]>([]);
+  const pushHistory = useCallback(() => {
+    history.current.push({ cuts, removed });
     if (history.current.length > 100) history.current.shift();
-  }, []);
+  }, [cuts, removed]);
   const updateCuts = useCallback(
     (next: Cut[]) => {
-      pushHistory(cuts);
+      pushHistory();
       setCuts(next);
     },
-    [cuts, pushHistory]
+    [pushHistory]
+  );
+  const updateRemoved = useCallback(
+    (next: Range[]) => {
+      pushHistory();
+      setRemoved(normalizeRanges(next, total));
+    },
+    [pushHistory, total]
   );
   const undo = useCallback(() => {
     const prev = history.current.pop();
-    if (prev) setCuts(prev);
+    if (!prev) return;
+    setCuts(prev.cuts);
+    setRemoved(prev.removed);
   }, []);
+
+  // Cut the marked stretch out of the program.
+  const cutOutMarked = useCallback(() => {
+    if (marks.in === null || marks.out === null) return;
+    const from = Math.min(marks.in, marks.out);
+    const to = Math.max(marks.in, marks.out);
+    if (to <= from) return;
+    updateRemoved([...program.removed, { from, to }]);
+    setMarks({ in: null, out: null });
+    seekTo(to);
+  }, [marks, program.removed, updateRemoved, seekTo]);
 
   // auto-save cuts + audio + rotations (debounced)
   const firstSave = useRef(true);
@@ -591,10 +670,18 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
       return;
     }
     const t = window.setTimeout(() => {
-      void store.saveEdit(manifest.id, { cuts, audioSource: audioSourceId, rotations, grades });
+      void store.saveEdit(manifest.id, {
+        cuts,
+        audioSource: audioSourceId,
+        rotations,
+        grades,
+        framings,
+        removed,
+        crossfade,
+      });
     }, 600);
     return () => window.clearTimeout(t);
-  }, [cuts, audioSourceId, rotations, grades, manifest.id, store]);
+  }, [cuts, audioSourceId, rotations, grades, framings, removed, crossfade, manifest.id, store]);
 
   // render progress over the hub socket (local app only; the browser
   // renderer reports its own progress directly)
@@ -643,6 +730,24 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     [activeSourceAt, cuts, updateCuts]
   );
 
+  // Give a shot a different angle and keep both of its edges. Removing a cut
+  // hands its stretch to the shot before and loses the edit point; this is
+  // what replacing a shot that didn't work usually means.
+  const swapAt = useCallback(
+    (atFrame: number, sourceId: string) => {
+      updateCuts([...cuts.filter((c) => c.atFrame !== atFrame), { atFrame, sourceId }]);
+    },
+    [cuts, updateCuts]
+  );
+  const swapAtPlayhead = useCallback(
+    (sourceId: string) => {
+      const f = frameRef.current;
+      const seg = [...timeline.segments].reverse().find((s) => s.start <= f);
+      if (seg && seg.sourceId !== sourceId) swapAt(seg.start, sourceId);
+    },
+    [timeline, swapAt]
+  );
+
   const deleteCutAtPlayhead = useCallback(() => {
     const f = frameRef.current;
     const containing = [...cuts]
@@ -668,11 +773,18 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     [cuts, total]
   );
 
-  // keyboard: 1..9 switch, space play/pause, arrows step, backspace delete cut
+  // keyboard: 1..9 switch, shift+1..9 swap the shot, space play/pause,
+  // arrows step, backspace delete cut
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT') return;
+      // By code, not key: shift turns the 1 into ! on most layouts.
+      const digit = /^Digit([1-9])$/.exec(e.code);
+      if (e.shiftKey && digit && Number(digit[1]) <= sources.length) {
+        swapAtPlayhead(sources[Number(digit[1]) - 1].id);
+        return;
+      }
       const idx = parseInt(e.key, 10);
       if (idx >= 1 && idx <= sources.length) {
         addCut(sources[idx - 1].id);
@@ -681,8 +793,18 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
         toggle();
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
-        const step = (e.shiftKey ? 10 : 1) * (e.key === 'ArrowLeft' ? -1 : 1);
-        seekTo(Math.round(frameRef.current) + step);
+        const dir = e.key === 'ArrowLeft' ? -1 : 1;
+        seekTo(Math.round(frameRef.current) + (e.shiftKey ? 10 : 1) * dir, dir);
+      } else if (e.key === 'i' || e.key === 'I') {
+        const f = Math.round(frameRef.current);
+        setMarks((m) => ({ in: f, out: m.out !== null && m.out > f ? m.out : null }));
+      } else if (e.key === 'o' || e.key === 'O') {
+        const f = Math.round(frameRef.current);
+        setMarks((m) => ({ in: m.in !== null && m.in < f ? m.in : null, out: f }));
+      } else if (e.key === 'x' || e.key === 'X') {
+        cutOutMarked();
+      } else if (e.key === 'Escape') {
+        setMarks({ in: null, out: null });
       } else if (e.key === 'Backspace' || e.key === 'Delete') {
         deleteCutAtPlayhead();
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
@@ -692,7 +814,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sources, addCut, deleteCutAtPlayhead, undo, toggle, seekTo]);
+  }, [sources, addCut, swapAtPlayhead, deleteCutAtPlayhead, undo, toggle, seekTo, cutOutMarked]);
 
   // Match every other angle onto this one, using the frames already on screen.
   const matchTo = useCallback(
@@ -750,12 +872,32 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
         <button className="pill ghost small" onClick={toggle}>
           {playing ? '❚❚' : '▶'}
         </button>
+        {/* The finished film's clock: removed time does not count. */}
         <span className="timecode">
-          {formatFrame(frame, fps)} <span className="total">/ {formatFrame(total, fps)}</span>
+          {formatFrame(programFrameOf(program.kept, frame), fps)}{' '}
+          <span className="total">/ {formatFrame(program.durationInFrames, fps)}</span>
         </span>
         <button className="pill ghost small" disabled={cuts.length === 0} onClick={() => updateCuts([])}>
           Clear cuts
         </button>
+        {marks.in !== null && marks.out !== null ? (
+          <button className="pill solid small" title="Cut the marked stretch out (X)" onClick={cutOutMarked}>
+            Cut out {formatFrame(marks.out - marks.in, fps)}
+          </button>
+        ) : marks.in !== null || marks.out !== null ? (
+          <span className="field">
+            {marks.in === null ? 'I marks the start' : 'O marks the end'}
+          </span>
+        ) : null}
+        {program.removed.length > 0 && (
+          <button
+            className="pill ghost small"
+            title="Put every removed stretch back"
+            onClick={() => updateRemoved([])}
+          >
+            Restore all
+          </button>
+        )}
         <span className="spacer" />
         <label className="field">
           audio
@@ -766,6 +908,10 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               </option>
             ))}
           </select>
+        </label>
+        <label className="field" title="Blend the sound across each stretch you cut out">
+          crossfade
+          <input type="checkbox" checked={crossfade} onChange={(e) => setCrossfade(e.target.checked)} />
         </label>
         <label className="field">
           preview
@@ -907,14 +1053,22 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
             );
           })}
         </div>
-        <div className="edit-program" onClick={toggle}>
+        <div className="edit-program">
           <ProgramCanvas
             width={FORMATS[format].width}
             height={FORMATS[format].height}
             activeSource={activeSource}
             activeColor={activeId ? colorOf(activeId) : '#000'}
             videoEls={videoEls}
+            onToggle={toggle}
+            onFraming={setFraming}
           />
+          {activeSource && (
+            <FrameBar
+              source={activeSource}
+              onFraming={(f) => setFraming(activeSource.id, f)}
+            />
+          )}
         </div>
         <div className="edit-angles">
           {sources.map((s, i) => (
@@ -926,6 +1080,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
               trim={timeline.trim[s.id] ?? 0}
               frame={frame}
               playing={playing}
+              skips={skips}
               active={activeId === s.id}
               color={colorOf(s.id)}
               onCut={() => addCut(s.id)}
@@ -951,7 +1106,9 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
           ))}
           <p className="edit-hint">
             1–{sources.length} or click cuts. Space plays, ←/→ steps, ⌫ removes the cut at the
-            playhead.
+            playhead. Shift+1–{sources.length}, or the numbers on a shot, swap its angle and keep its
+            timing. I and O mark a stretch, X cuts it out; click a hatched sliver to put it back.
+            Drag the picture to reframe the angle on screen; scroll or pinch to zoom.
           </p>
         </div>
       </div>
@@ -963,6 +1120,7 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
           fps={fps}
           frame={frame}
           playing={playing}
+          skips={skips}
         />
       )}
 
@@ -973,33 +1131,53 @@ function Editor({ manifest, store }: { manifest: Manifest; store: SessionStore }
         frame={frame}
         colorOf={colorOf}
         onSeek={seekTo}
+        angles={sources.map((s) => s.id)}
+        onSwap={swapAt}
+        program={program}
+        marks={marks}
+        onRestore={(r) => updateRemoved(program.removed.filter((x) => x.from !== r.from))}
         onDeleteCutAt={(atFrame) => updateCuts(cuts.filter((c) => c.atFrame !== atFrame))}
         onMoveCut={moveCut}
-        onDragStart={() => pushHistory(cuts)}
+        onDragStart={pushHistory}
       />
     </div>
   );
 }
 
 // The program monitor: a canvas that draws the active angle's tile video with
-// the same cover-crop + rotation math as the ffmpeg render. Reusing the tile
+// the same cover, framing and rotation maths as the render. Reusing the tile
 // <video> elements keeps us inside the browser's per-origin connection limit.
+//
+// It is also where an angle is framed: drag the picture to move the crop,
+// scroll or pinch to push in. A click that does not move still plays.
 function ProgramCanvas({
   width,
   height,
   activeSource,
   activeColor,
   videoEls,
+  onToggle,
+  onFraming,
 }: {
   width: number;
   height: number;
   activeSource: EditSource | null;
   activeColor: string;
   videoEls: React.MutableRefObject<Map<string, HTMLVideoElement>>;
+  onToggle: () => void;
+  onFraming: (id: string, framing: Framing | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeRef = useRef(activeSource);
+  // Wheel events arrive faster than React re-renders, so each one builds on
+  // the last one sent rather than on a prop that has not caught up yet.
+  const pending = useRef<{ id: string; framing: Framing } | null>(null);
+  if (activeRef.current !== activeSource) pending.current = null;
   activeRef.current = activeSource;
+  // The upright size of what is on screen, for turning pointer movement
+  // into a framing. Written by the draw loop.
+  const content = useRef<{ w: number; h: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     let raf = 0;
@@ -1012,20 +1190,27 @@ function ProgramCanvas({
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       const active = activeRef.current;
       const v = active ? videoEls.current.get(active.id) : null;
-      if (!v || !v.videoWidth) return;
+      if (!v || !v.videoWidth) {
+        content.current = null;
+        return;
+      }
       // The <video> element already applies the file's own display matrix;
       // only the user-set rotation is applied here (mirrors the render).
       const rot = (((active!.rotation ?? 0) % 360) + 360) % 360;
       const quarter = rot === 90 || rot === 270;
       const contentW = quarter ? v.videoHeight : v.videoWidth;
       const contentH = quarter ? v.videoWidth : v.videoHeight;
-      const scale = Math.max(canvas.width / contentW, canvas.height / contentH);
-      // The renderer draws through the identical helper, so what the monitor
-      // shows is what the file gets.
+      content.current = { w: contentW, h: contentH };
+      const framing =
+        pending.current?.id === active!.id ? pending.current.framing : active!.framing;
+      const p = placeCover(canvas.width, canvas.height, contentW, contentH, framing);
+      // The renderer draws through the identical helpers, so what the
+      // monitor shows is what the file gets.
       drawGraded(ctx, canvas.width, canvas.height, active!.grade, () => {
         ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
         ctx.rotate((rot * Math.PI) / 180);
+        const scale = p.w / contentW;
         ctx.scale(scale, scale);
         ctx.drawImage(v, -v.videoWidth / 2, -v.videoHeight / 2, v.videoWidth, v.videoHeight);
         ctx.restore();
@@ -1035,14 +1220,146 @@ function ProgramCanvas({
     return () => cancelAnimationFrame(raf);
   }, [videoEls]);
 
+  const current = (): Framing => {
+    const active = activeRef.current!;
+    return pending.current?.id === active.id
+      ? pending.current.framing
+      : (active.framing ?? UNFRAMED);
+  };
+
+  // Takes where the picture should go and stores the focus point it actually
+  // shows once the edges are respected.
+  const send = (zoom: number, placed: { x: number; y: number; w: number; h: number }) => {
+    const active = activeRef.current;
+    const c = content.current;
+    if (!active || !c) return;
+    const focus = focusOf(width, height, placed);
+    const settled = placeCover(width, height, c.w, c.h, { zoom, ...focus });
+    const framing = { zoom, ...focusOf(width, height, settled) };
+    pending.current = { id: active.id, framing };
+    onFraming(active.id, framing);
+  };
+
+  const drag = useRef<{
+    x: number;
+    y: number;
+    moved: boolean;
+    from: { x: number; y: number; w: number; h: number };
+    zoom: number;
+  } | null>(null);
+
+  // Wheel needs a non-passive listener to keep the page from scrolling, and
+  // React attaches its wheel handler passively.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      const c = content.current;
+      if (!activeRef.current || !c) return;
+      e.preventDefault();
+      const f = current();
+      // A trackpad pinch arrives as a wheel with ctrlKey and small deltas.
+      const zoom = Math.min(
+        MAX_ZOOM,
+        Math.max(1, f.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.002)))
+      );
+      if (zoom === f.zoom) return;
+      // Keep the point under the cursor where it is.
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((e.clientX - rect.left) / rect.width) * width;
+      const cy = ((e.clientY - rect.top) / rect.height) * height;
+      const before = placeCover(width, height, c.w, c.h, f);
+      const u = (cx - before.x) / before.w;
+      const v = (cy - before.y) / before.h;
+      const after = placeCover(width, height, c.w, c.h, { ...f, zoom });
+      send(zoom, { x: cx - u * after.w, y: cy - v * after.h, w: after.w, h: after.h });
+    };
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, onFraming]);
+
   return (
     <canvas
       ref={canvasRef}
       width={width}
       height={height}
-      className="program-canvas"
+      className={`program-canvas${dragging ? ' dragging' : ''}`}
       style={{ aspectRatio: `${width} / ${height}`, outline: `4px solid ${activeColor}` }}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        const c = content.current;
+        const f = activeRef.current && c ? current() : null;
+        drag.current = {
+          x: e.clientX,
+          y: e.clientY,
+          moved: false,
+          from: f && c ? placeCover(width, height, c.w, c.h, f) : { x: 0, y: 0, w: 0, h: 0 },
+          zoom: f?.zoom ?? 1,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d || !content.current) return;
+        if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return;
+        if (!d.moved) setDragging(true);
+        d.moved = true;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dx = ((e.clientX - d.x) / rect.width) * width;
+        const dy = ((e.clientY - d.y) / rect.height) * height;
+        send(d.zoom, { ...d.from, x: d.from.x + dx, y: d.from.y + dy });
+      }}
+      onPointerUp={() => {
+        const d = drag.current;
+        drag.current = null;
+        setDragging(false);
+        if (d && !d.moved) onToggle();
+      }}
+      onPointerCancel={() => {
+        drag.current = null;
+        setDragging(false);
+      }}
     />
+  );
+}
+
+// Under the monitor, for whichever angle is on screen: how far in it is, and
+// a way back to the plain center crop. The drag and the wheel do the same
+// thing; this is where you find out that they exist.
+function FrameBar({
+  source,
+  onFraming,
+}: {
+  source: EditSource;
+  onFraming: (framing: Framing | null) => void;
+}) {
+  const framing = source.framing ?? UNFRAMED;
+  const framed = !isUnframed(source.framing);
+  return (
+    <div className={`frame-bar${framed ? ' framed' : ''}`}>
+      <span className="frame-bar-label">{source.id}</span>
+      <label title="Zoom in on this angle">
+        zoom
+        <input
+          type="range"
+          min={1}
+          max={MAX_ZOOM}
+          step={0.01}
+          value={framing.zoom}
+          onChange={(e) => onFraming({ ...framing, zoom: Number(e.target.value) })}
+        />
+        <span className="frame-bar-value">{framing.zoom.toFixed(1)}×</span>
+      </label>
+      <button
+        className="pill ghost small"
+        disabled={!framed}
+        title="Back to the full picture, centered"
+        onClick={() => onFraming(null)}
+      >
+        Reset
+      </button>
+    </div>
   );
 }
 
@@ -1103,14 +1420,17 @@ function AudioTrack({
   fps,
   frame,
   playing,
+  skips,
 }: {
   src: string;
   trim: number;
   fps: number;
   frame: number;
   playing: boolean;
+  skips: number;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const lastSkips = useRef(skips);
   // The audio source can be the same live WebM as an angle, and stalls the
   // same way — the film then plays to a silence that never recovers.
   const primed = usePrimedSeeking(ref, src);
@@ -1119,14 +1439,17 @@ function AudioTrack({
     const a = ref.current;
     if (!a || !primed) return;
     const target = (frame + trim) / fps;
+    // Playback just jumped a removed stretch: follow now, however short.
+    const skipped = skips !== lastSkips.current;
+    lastSkips.current = skips;
     if (playing) {
       if (a.paused) void a.play().catch(() => {});
-      if (Math.abs(a.currentTime - target) > 0.25) a.currentTime = target;
+      if (skipped || Math.abs(a.currentTime - target) > 0.25) a.currentTime = target;
     } else {
       if (!a.paused) a.pause();
       if (Math.abs(a.currentTime - target) > 0.05) a.currentTime = target;
     }
-  }, [frame, playing, trim, fps, primed]);
+  }, [frame, playing, trim, fps, primed, skips]);
 
   return <audio ref={ref} src={src} preload="auto" />;
 }
@@ -1138,6 +1461,7 @@ function AngleTile({
   trim,
   frame,
   playing,
+  skips,
   active,
   color,
   onCut,
@@ -1153,6 +1477,7 @@ function AngleTile({
   trim: number;
   frame: number;
   playing: boolean;
+  skips: number;
   active: boolean;
   color: string;
   onCut: () => void;
@@ -1184,6 +1509,7 @@ function AngleTile({
   // next. Half a second of lag on a preview is invisible; a frozen angle
   // is not. Paused is still exact, which is what judging a cut needs.
   const lastCorrection = useRef(0);
+  const lastSkips = useRef(skips);
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !primed) return;
@@ -1191,6 +1517,14 @@ function AngleTile({
     if (playing) {
       if (v.paused) void v.play().catch(() => {});
       const now = performance.now();
+      // A jump over a removed stretch is a seek we asked for, not drift:
+      // take it at once, cooldown or not.
+      if (skips !== lastSkips.current) {
+        lastSkips.current = skips;
+        lastCorrection.current = now;
+        v.currentTime = target;
+        return;
+      }
       if (v.seeking || now - lastCorrection.current < CORRECTION_COOLDOWN_MS) return;
       if (Math.abs(v.currentTime - target) > PLAYING_DRIFT_S) {
         lastCorrection.current = now;
@@ -1200,7 +1534,7 @@ function AngleTile({
       if (!v.paused) v.pause();
       if (Math.abs(v.currentTime - target) > 1 / fps) v.currentTime = target;
     }
-  }, [frame, playing, trim, fps, primed]);
+  }, [frame, playing, trim, fps, primed, skips]);
 
   return (
     <div
@@ -1251,8 +1585,15 @@ function AngleTile({
       {/* Otherwise a corrected angle looks exactly like an untouched one, and
           there is no way to tell what you have already changed. A grade that
           came from Match fits no preset, and says so. */}
-      {!isNeutral(grade) && (
-        <span className="angle-graded">{preset?.label.toLowerCase() ?? 'graded'}</span>
+      {(!isNeutral(grade) || !isUnframed(source.framing)) && (
+        <span className="angle-graded">
+          {[
+            !isNeutral(grade) && (preset?.label.toLowerCase() ?? 'graded'),
+            !isUnframed(source.framing) && 'framed',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </span>
       )}
       <div className="angle-grade" onClick={(e) => e.stopPropagation()}>
         <button className={isNeutral(grade) ? 'on' : ''} onClick={() => onGrade(null)}>
@@ -1283,49 +1624,97 @@ function aspectOf(file: string): string {
   return m ? `${m[1]} / ${m[2]}` : '4 / 5';
 }
 
+// The program strip. Shots are laid out as the finished film runs, and each
+// stretch you cut out stays on it as a thin hatched sliver — click one to put
+// it back. Positions are in display units: film frames plus a fixed width
+// per sliver.
 function Timeline({
   timeline,
+  program,
   cuts,
+  marks,
   fps,
   frame,
   colorOf,
   onSeek,
+  angles,
+  onSwap,
   onDeleteCutAt,
+  onRestore,
   onMoveCut,
   onDragStart,
 }: {
   timeline: ReturnType<typeof buildTimeline>;
+  program: ReturnType<typeof buildProgram>;
   cuts: Cut[];
+  marks: { in: number | null; out: number | null };
   fps: number;
   frame: number;
   colorOf: (id: string) => string;
-  onSeek: (frame: number) => void;
+  onSeek: (frame: number, dir?: 1 | -1) => void;
+  angles: string[];
+  onSwap: (atFrame: number, sourceId: string) => void;
   onDeleteCutAt: (atFrame: number) => void;
+  onRestore: (range: Range) => void;
   onMoveCut: (fromFrame: number, toFrame: number) => number | null;
   onDragStart: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<
     | { type: 'scrub' }
-    | { type: 'playhead'; startX: number; startFrame: number }
+    | { type: 'playhead'; startX: number; startDisp: number }
     | { type: 'cut'; atFrame: number }
     | null
   >(null);
   const duration = timeline.durationInFrames;
+  const { removed } = program;
+
+  // ---- synced-timeline frames <-> display units ----
+  const sliver = Math.max(1, Math.round(program.durationInFrames * 0.012));
+  const dispTotal = program.durationInFrames + removed.length * sliver;
+  const toDisp = (f: number) => {
+    let d = 0;
+    let at = 0;
+    for (const r of removed) {
+      if (f < r.from) return d + (f - at);
+      d += r.from - at;
+      if (f < r.to) return d + ((f - r.from) / (r.to - r.from)) * sliver;
+      d += sliver;
+      at = r.to;
+    }
+    return d + (f - at);
+  };
+  const fromDisp = (d: number) => {
+    let acc = 0;
+    let at = 0;
+    for (const r of removed) {
+      if (d < acc + (r.from - at)) return at + (d - acc);
+      acc += r.from - at;
+      if (d < acc + sliver) return r.from + ((d - acc) / sliver) * (r.to - r.from);
+      acc += sliver;
+      at = r.to;
+    }
+    return at + (d - acc);
+  };
+  const pct = (d: number) => `${(d / dispTotal) * 100}%`;
 
   const clampFrame = (f: number) => Math.max(0, Math.min(duration - 1, Math.round(f)));
-
-  const frameAt = (clientX: number) => {
+  const dispAt = (clientX: number) => {
     const r = ref.current!.getBoundingClientRect();
-    return clampFrame(((clientX - r.left) / r.width) * duration);
+    return ((clientX - r.left) / r.width) * dispTotal;
   };
+  const frameAt = (clientX: number) => clampFrame(fromDisp(dispAt(clientX)));
 
   // Grabbing the playhead or its clock drags from where you took hold, rather
   // than jumping the program to the pointer: the clock is clamped away from
   // the playhead near either end, so an absolute seek there would leap.
-  const framesPerPixel = () => duration / (ref.current?.getBoundingClientRect().width || 1);
+  const unitsPerPixel = () => dispTotal / (ref.current?.getBoundingClientRect().width || 1);
 
-  const explicitCuts = [...cuts].sort((a, b) => a.atFrame - b.atFrame);
+  const segmentOf = (f: number) =>
+    timeline.segments.find((seg) => f >= seg.start && f < seg.start + seg.len) ?? timeline.segments[0];
+  const playheadDisp = toDisp(frame);
+  const markIn = marks.in !== null ? toDisp(marks.in) : null;
+  const markOut = marks.out !== null ? toDisp(marks.out) : null;
 
   return (
     <div
@@ -1333,14 +1722,14 @@ function Timeline({
       className="timeline"
       onPointerDown={(e) => {
         const target = e.target as HTMLElement;
-        if (target.closest('.seg-x')) return;
+        if (target.closest('.seg-swap, .sliver')) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const handle = target.closest('.cut-handle') as HTMLElement | null;
         if (handle) {
           drag.current = { type: 'cut', atFrame: Number(handle.dataset.frame) };
           onDragStart();
         } else if (target.closest('.playhead-grip, .playhead-time')) {
-          drag.current = { type: 'playhead', startX: e.clientX, startFrame: frame };
+          drag.current = { type: 'playhead', startX: e.clientX, startDisp: playheadDisp };
         } else {
           drag.current = { type: 'scrub' };
           onSeek(frameAt(e.clientX));
@@ -1349,8 +1738,8 @@ function Timeline({
       onPointerMove={(e) => {
         if (!drag.current) return;
         if (drag.current.type === 'playhead') {
-          const moved = (e.clientX - drag.current.startX) * framesPerPixel();
-          onSeek(clampFrame(drag.current.startFrame + moved));
+          const moved = (e.clientX - drag.current.startX) * unitsPerPixel();
+          onSeek(clampFrame(fromDisp(drag.current.startDisp + moved)), moved < 0 ? -1 : 1);
           return;
         }
         const f = frameAt(e.clientX);
@@ -1364,53 +1753,90 @@ function Timeline({
       onPointerUp={() => (drag.current = null)}
       onPointerCancel={() => (drag.current = null)}
     >
-      {timeline.segments.map((seg, i) => {
-        const deletable = cuts.some((c) => c.atFrame === seg.start);
-        return (
-          <div
-            key={`${seg.start}-${seg.sourceId}`}
-            className={`seg${i === timeline.segments.length - 1 ? ' last' : ''}`}
-            style={{
-              width: `${(seg.len / duration) * 100}%`,
-              background: colorOf(seg.sourceId),
-              color: textOn(colorOf(seg.sourceId)),
-            }}
-            title={`${seg.sourceId} @ ${formatFrame(seg.start, fps)}`}
-          >
-            <span className="seg-label">{seg.sourceId}</span>
-            {deletable && (
-              <button
-                className="seg-x"
-                title="Remove this cut (merges into the previous segment)"
-                onClick={() => onDeleteCutAt(seg.start)}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        );
-      })}
-      {explicitCuts
-        .filter((c) => c.atFrame > 0 && c.atFrame < duration)
+      <div className="timeline-track">
+        {program.pieces.map((piece) => {
+          const seg = segmentOf(piece.src);
+          const left = toDisp(piece.src);
+          // The opening shot has nothing before it to take its place.
+          const deletable = cuts.some((c) => c.atFrame === seg.start);
+          return (
+            <div
+              key={`${piece.src}-${piece.sourceId}`}
+              className={`seg${left > 0 ? ' joined' : ''}`}
+              style={{
+                left: pct(left),
+                width: pct(piece.len),
+                background: colorOf(piece.sourceId),
+                color: textOn(colorOf(piece.sourceId)),
+              }}
+              title={`${piece.sourceId} @ ${formatFrame(programFrameOf(program.kept, piece.src), fps)}`}
+            >
+              <span className="seg-label">{piece.sourceId}</span>
+              {/* Swap keeps the shot's start and end; × removes the shot and
+                  the one before it runs on to fill the space. Every other cut
+                  stays on its frame either way. */}
+              <span className="seg-swap">
+                {angles.map((id, n) =>
+                  id === piece.sourceId ? null : (
+                    <button
+                      key={id}
+                      style={{ background: colorOf(id), color: textOn(colorOf(id)) }}
+                      title={`Show ${id} here instead (Shift+${n + 1})`}
+                      onClick={() => onSwap(seg.start, id)}
+                    >
+                      {n + 1}
+                    </button>
+                  )
+                )}
+                {deletable && (
+                  <button
+                    className="seg-delete"
+                    title="Remove this shot; the one before it fills the space"
+                    onClick={() => onDeleteCutAt(seg.start)}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            </div>
+          );
+        })}
+        {removed.map((r) => (
+          <button
+            key={r.from}
+            className="sliver"
+            style={{ left: pct(toDisp(r.from)), width: pct(sliver) }}
+            title={`${formatFrame(r.to - r.from, fps)} cut out here. Click to put it back.`}
+            onClick={() => onRestore(r)}
+          />
+        ))}
+      </div>
+      {markIn !== null && markOut !== null && markOut > markIn && (
+        <div className="mark-range" style={{ left: pct(markIn), width: pct(markOut - markIn) }} />
+      )}
+      {markIn !== null && <div className="mark in" style={{ left: pct(markIn) }} />}
+      {markOut !== null && <div className="mark out" style={{ left: pct(markOut) }} />}
+      {[...cuts]
+        .filter((c) => c.atFrame > 0 && c.atFrame < duration && !removedAt(removed, c.atFrame))
         .map((c) => (
           <div
             key={c.atFrame}
             className="cut-handle"
             data-frame={c.atFrame}
-            style={{ left: `${(c.atFrame / duration) * 100}%` }}
+            style={{ left: pct(toDisp(c.atFrame)) }}
             title="Drag to move this cut"
           />
         ))}
-      <div className="playhead" style={{ left: `${(frame / duration) * 100}%` }}>
+      <div className="playhead" style={{ left: pct(playheadDisp) }}>
         <div className="playhead-grip" title="Drag to scrub" />
       </div>
       <div
         className="playhead-time"
         // Clamped so the label stays inside the track at either end.
-        style={{ left: `${Math.min(96, Math.max(4, (frame / duration) * 100))}%` }}
+        style={{ left: `${Math.min(96, Math.max(4, (playheadDisp / dispTotal) * 100))}%` }}
         title="Drag to scrub"
       >
-        {formatFrame(frame, fps)}
+        {formatFrame(programFrameOf(program.kept, frame), fps)}
       </div>
     </div>
   );

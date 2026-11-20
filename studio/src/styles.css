@@ -1653,12 +1653,72 @@ button.big {
 }
 
 .edit-program {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+}
+
+/* The picture can be dragged to reframe it; a click without moving still
+   plays. touch-action keeps a drag from scrolling the page instead. */
+.program-canvas {
+  cursor: grab;
+  touch-action: none;
+}
+
+.program-canvas.dragging {
+  cursor: grabbing;
+}
+
+/* Over the foot of the monitor, out of the way until wanted. It stays up
+   once an angle is framed, so a crop is never invisible. */
+.frame-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 6px 16px;
+  border-radius: 999px;
+  background: rgba(11, 11, 12, 0.78);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.edit-program:hover .frame-bar,
+.frame-bar:focus-within,
+.frame-bar.framed {
+  opacity: 1;
+}
+
+.frame-bar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+}
+
+.frame-bar input[type='range'] {
+  width: 120px;
+}
+
+.frame-bar-value {
+  min-width: 3.2em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.frame-bar button:disabled {
+  opacity: 0.4;
 }
 
 /* Sized by its own two maxima, never by one of them: a canvas given a
@@ -1966,18 +2026,25 @@ button.big {
   height: 80px;
   flex-shrink: 0;
   margin: 18px 24px 24px 0;
-  display: flex;
-  /* No gap, no per-slice rounding: the program is continuous, and a gutter
-     between slices puts the cut in a place you cannot point at. The strip
-     keeps its rounded ends; the cuts inside it are hard edges. */
-  gap: 0;
   cursor: pointer;
   touch-action: none;
   user-select: none;
 }
 
+/* No gap, no per-slice rounding: the program is continuous, and a gutter
+   between slices puts the cut in a place you cannot point at. The strip
+   keeps its rounded ends, cut by the track; the cuts inside it are hard
+   edges. The playhead and its clock sit outside it, free to overhang. */
+.timeline-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  overflow: hidden;
+}
+
 .timeline .seg {
-  position: relative;
+  position: absolute;
+  top: 0;
   height: 100%;
   display: flex;
   align-items: center;
@@ -1990,17 +2057,75 @@ button.big {
   transition: filter 150ms ease-out;
 }
 
-.timeline .seg:first-of-type {
-  border-radius: 40px 0 0 40px;
-}
-
-.timeline .seg.last {
-  border-radius: 0 40px 40px 0;
-}
-
 /* The cut itself: a hard edge between two colors, not a gap. */
-.timeline .seg + .seg {
+.timeline .seg.joined {
   box-shadow: inset 2px 0 0 var(--bg);
+}
+
+/* Where a stretch was cut out: narrow, hatched, and a button, because the
+   thing you do with one is put it back. */
+.timeline .sliver {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 10px;
+  z-index: 2;
+  padding: 0;
+  border-radius: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg) 0 4px,
+    var(--dim) 4px 6px
+  );
+  box-shadow: inset 2px 0 0 var(--bg), inset -2px 0 0 var(--bg);
+  cursor: pointer;
+}
+
+.timeline .sliver:hover {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg) 0 4px,
+    var(--text) 4px 6px
+  );
+}
+
+/* The stretch marked with I and O, waiting for X. */
+.timeline .mark-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.timeline .mark {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 3px;
+  margin-left: -1.5px;
+  z-index: 3;
+  background: #fff;
+  pointer-events: none;
+}
+
+.timeline .mark::after {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timeline .mark.in::after {
+  content: 'I';
+}
+
+.timeline .mark.out::after {
+  content: 'O';
 }
 
 .timeline .seg:hover {
@@ -2014,22 +2139,42 @@ button.big {
   text-overflow: ellipsis;
 }
 
-.timeline .seg-x {
+/* Swap chips, one per other angle and numbered like the keys, then × to
+   remove the shot and let the one before it fill the space. */
+.timeline .seg-swap {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   display: none;
+  gap: 4px;
+  padding: 4px;
   border-radius: 999px;
   background: rgba(11, 11, 12, 0.75);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 4px 10px;
 }
 
-.timeline .seg:hover .seg-x {
-  display: block;
+.timeline .seg:hover .seg-swap {
+  display: flex;
+}
+
+.timeline .seg-swap button {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.timeline .seg-swap button:hover {
+  filter: brightness(1.15);
+}
+
+.timeline .seg-swap .seg-delete {
+  margin-left: 2px;
+  background: transparent;
+  color: #fff;
+  font-size: 15px;
 }
 
 .timeline .cut-handle {
@@ -2460,11 +2605,7 @@ button.big {
     font-size: 15px;
   }
 
-  .timeline .seg:first-of-type {
-    border-radius: 28px 0 0 28px;
-  }
-
-  .timeline .seg.last {
-    border-radius: 0 28px 28px 0;
+  .timeline-track {
+    border-radius: 28px;
   }
 }
